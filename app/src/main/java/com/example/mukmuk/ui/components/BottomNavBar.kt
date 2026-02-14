@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -27,28 +28,20 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import androidx.navigation.compose.currentBackStackEntryAsState
+import com.example.mukmuk.navigation.Screen
 import com.example.mukmuk.ui.theme.DarkBackground
 import com.example.mukmuk.ui.theme.GoldAccent
 
-data class NavItem(
-    val icon: String,
-    val label: String,
-    val route: String
-)
-
-val navItems = listOf(
-    NavItem("\uD83C\uDFAF", "\uB8F0\uB81B", "roulette"),
-    NavItem("\uD83D\uDCCD", "\uB9DB\uC9D1", "restaurants"),
-    NavItem("\uD83D\uDCCB", "\uAE30\uB85D", "history"),
-    NavItem("\u2699\uFE0F", "\uC124\uC815", "settings"),
-)
-
 @Composable
 fun BottomNavBar(
-    currentRoute: String,
-    onNavigate: (String) -> Unit,
+    navController: NavController,
     modifier: Modifier = Modifier
 ) {
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -63,32 +56,41 @@ fun BottomNavBar(
             .padding(bottom = 8.dp),
         horizontalArrangement = Arrangement.SpaceAround
     ) {
-        navItems.forEach { item ->
-            val isActive = item.route == currentRoute
+        Screen.bottomNavItems.forEach { screen ->
+            val isActive = screen.route == currentRoute
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
                     .defaultMinSize(minWidth = 56.dp, minHeight = 48.dp)
                     .semantics {
-                        contentDescription = "${item.label} \uD0ED"
+                        contentDescription = "${screen.title} \uD0ED"
                         role = Role.Tab
                     }
-                    .clickable { onNavigate(item.route) }
+                    .clickable {
+                        if (currentRoute != screen.route) {
+                            navController.navigate(screen.route) {
+                                popUpTo(navController.graph.startDestinationId) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
+                    }
                     .padding(horizontal = 8.dp, vertical = 4.dp)
             ) {
                 Text(
-                    text = item.icon,
+                    text = screen.icon,
                     fontSize = 22.sp,
                     modifier = Modifier.alpha(if (isActive) 1f else 0.4f)
                 )
                 Text(
-                    text = item.label,
+                    text = screen.title,
                     fontSize = 10.sp,
                     fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
                     color = if (isActive) GoldAccent else Color.White.copy(alpha = 0.4f),
                     modifier = Modifier.padding(top = 2.dp)
                 )
-                // Active indicator
                 if (isActive) {
                     Spacer(modifier = Modifier.height(2.dp))
                     Box(

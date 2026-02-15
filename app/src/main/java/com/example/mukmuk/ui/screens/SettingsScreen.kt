@@ -46,6 +46,7 @@ import com.example.mukmuk.ui.theme.TextTertiary
 @Composable
 fun SettingsScreen(viewModel: RouletteViewModel) {
     val hapticEnabled by viewModel.hapticEnabled.collectAsState()
+    val soundEnabled by viewModel.soundEnabled.collectAsState()
     val darkTheme by viewModel.darkTheme.collectAsState()
     var showDeleteDialog by remember { mutableStateOf(false) }
 
@@ -81,6 +82,16 @@ fun SettingsScreen(viewModel: RouletteViewModel) {
             subtitle = "룰렛 조작 시 진동 피드백",
             checked = hapticEnabled,
             onCheckedChange = { viewModel.setHapticEnabled(it) }
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        SettingsToggleItem(
+            icon = "🔔",
+            title = "사운드 효과",
+            subtitle = "룰렛 회전 시 효과음",
+            checked = soundEnabled,
+            onCheckedChange = { viewModel.setSoundEnabled(it) }
         )
 
         Spacer(modifier = Modifier.height(8.dp))

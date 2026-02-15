@@ -33,6 +33,9 @@ class RouletteViewModel(application: Application) : AndroidViewModel(application
     val hapticEnabled = settingsRepository.hapticEnabled
         .stateIn(viewModelScope, SharingStarted.Eagerly, true)
 
+    val soundEnabled = settingsRepository.soundEnabled
+        .stateIn(viewModelScope, SharingStarted.Eagerly, true)
+
     val darkTheme = settingsRepository.darkTheme
         .stateIn(viewModelScope, SharingStarted.Eagerly, true)
 
@@ -134,6 +137,12 @@ class RouletteViewModel(application: Application) : AndroidViewModel(application
     fun setHapticEnabled(enabled: Boolean) {
         viewModelScope.launch {
             settingsRepository.setHapticEnabled(enabled)
+        }
+    }
+
+    fun setSoundEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.setSoundEnabled(enabled)
         }
     }
 

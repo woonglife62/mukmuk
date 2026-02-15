@@ -1,10 +1,17 @@
 package com.example.mukmuk.ui.components
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -12,6 +19,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
@@ -30,6 +38,18 @@ fun RouletteWheel(
     onSpin: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Glow pulsation during spin
+    val infiniteTransition = rememberInfiniteTransition(label = "glow")
+    val glowAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 0.8f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(600, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "glowAlpha"
+    )
+
     Box(
         modifier = modifier.size(280.dp),
         contentAlignment = Alignment.TopCenter
@@ -72,6 +92,21 @@ fun RouletteWheel(
             val center = Offset(size.width / 2f, size.height / 2f)
             val radius = canvasSize / 2f - 10.dp.toPx()
             val arcAngle = 360f / menus.size
+
+            // Glow effect during spinning
+            if (isSpinning) {
+                drawCircle(
+                    color = GoldAccent.copy(alpha = glowAlpha * 0.4f),
+                    radius = radius + 12.dp.toPx(),
+                    center = center
+                )
+                drawCircle(
+                    color = GoldAccent.copy(alpha = glowAlpha * 0.6f),
+                    radius = radius + 4.dp.toPx(),
+                    center = center,
+                    style = Stroke(width = 4.dp.toPx())
+                )
+            }
 
             rotate(rotation, pivot = center) {
                 menus.forEachIndexed { index, menu ->

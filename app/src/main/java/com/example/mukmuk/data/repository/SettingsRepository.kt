@@ -15,11 +15,16 @@ class SettingsRepository(private val context: Context) {
 
     private object Keys {
         val HAPTIC_ENABLED = booleanPreferencesKey("haptic_enabled")
+        val SOUND_ENABLED = booleanPreferencesKey("sound_enabled")
         val DARK_THEME = booleanPreferencesKey("dark_theme")
     }
 
     val hapticEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
         prefs[Keys.HAPTIC_ENABLED] ?: true
+    }
+
+    val soundEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[Keys.SOUND_ENABLED] ?: true
     }
 
     val darkTheme: Flow<Boolean> = context.dataStore.data.map { prefs ->
@@ -29,6 +34,12 @@ class SettingsRepository(private val context: Context) {
     suspend fun setHapticEnabled(enabled: Boolean) {
         context.dataStore.edit { prefs ->
             prefs[Keys.HAPTIC_ENABLED] = enabled
+        }
+    }
+
+    suspend fun setSoundEnabled(enabled: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[Keys.SOUND_ENABLED] = enabled
         }
     }
 

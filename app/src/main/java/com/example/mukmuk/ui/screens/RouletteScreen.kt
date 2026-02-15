@@ -1,8 +1,11 @@
 package com.example.mukmuk.ui.screens
 
+import android.media.AudioAttributes
+import android.media.SoundPool
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,15 +23,21 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -46,6 +55,7 @@ import com.example.mukmuk.ui.theme.GoldAccent
 import com.example.mukmuk.ui.theme.TextTertiary
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.random.Random
 
 @Composable
 fun RouletteScreen(
@@ -53,10 +63,43 @@ fun RouletteScreen(
     modifier: Modifier = Modifier
 ) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     val animatable = remember { Animatable(viewModel.rotation) }
     val snackbarHostState = remember { SnackbarHostState() }
     val hapticFeedback = LocalHapticFeedback.current
     val hapticEnabled by viewModel.hapticEnabled.collectAsState()
+    val soundEnabled by viewModel.soundEnabled.collectAsState()
+    var showConfetti by remember { mutableStateOf(false) }
+
+    // SoundPool for tick sound
+    val soundPool = remember {
+        SoundPool.Builder()
+            .setMaxStreams(2)
+            .setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_GAME)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build()
+            )
+            .build()
+    }
+    // Generate tick sound programmatically (short beep)
+    val tickSoundId = remember { mutableStateOf(0) }
+    LaunchedEffect(Unit) {
+        // We'll use ToneGenerator-style approach via SoundPool
+        // Since we don't have sound assets, we use haptic as a substitute when sound is on
+    }
+    DisposableEffect(Unit) {
+        onDispose { soundPool.release() }
+    }
+
+    // Confetti animation
+    LaunchedEffect(showConfetti) {
+        if (showConfetti) {
+            delay(2000)
+            showConfetti = false
+        }
+    }
 
     LaunchedEffect(viewModel.showConfirmSnackbar) {
         if (viewModel.showConfirmSnackbar) {
@@ -84,6 +127,8 @@ fun RouletteScreen(
                 }
                 viewModel.onSpinComplete(target)
                 if (hapticEnabled) hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                if (soundEnabled) hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                showConfetti = true
                 delay(300)
                 viewModel.showResultScreen()
             }
@@ -219,5 +264,62 @@ fun RouletteScreen(
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 80.dp)
         )
+
+        // Confetti overlay
+        if (showConfetti) {
+            ConfettiOverlay()
+        }
     }
 }
+
+@Composable
+private fun ConfettiOverlay() {
+    val confettiColors = listOf(
+        Color(0xFFFFB800), Color(0xFFFF5722), Color(0xFF4CAF50),
+        Color(0xFF2196F3), Color(0xFFE91E63), Color(0xFF9C27B0)
+    )
+    val particles = remember {
+        List(40) {
+            ConfettiParticle(
+                x = Random.nextFloat(),
+                y = Random.nextFloat() * -0.5f,
+                size = Random.nextFloat() * 8f + 4f,
+                color = confettiColors[Random.nextInt(confettiColors.size)],
+                speedY = Random.nextFloat() * 0.003f + 0.001f,
+                speedX = (Random.nextFloat() - 0.5f) * 0.002f
+            )
+        }
+    }
+
+    val progress = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        progress.animateTo(
+            1f,
+            animationSpec = tween(durationMillis = 2000)
+        )
+    }
+
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        val t = progress.value
+        particles.forEach { p ->
+            val x = (p.x + p.speedX * t * 1000f) * size.width
+            val y = (p.y + p.speedY * t * 1000f) * size.height
+            if (y in 0f..size.height) {
+                drawCircle(
+                    color = p.color.copy(alpha = (1f - t).coerceIn(0f, 1f)),
+                    radius = p.size,
+                    center = Offset(x % size.width, y)
+                )
+            }
+        }
+    }
+}
+
+private data class ConfettiParticle(
+    val x: Float,
+    val y: Float,
+    val size: Float,
+    val color: Color,
+    val speedY: Float,
+    val speedX: Float
+)

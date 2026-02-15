@@ -44,7 +44,7 @@ fun MukmukApp() {
                     RestaurantsScreen()
                 }
                 composable(Screen.History.route) {
-                    HistoryScreen()
+                    HistoryScreen(viewModel = viewModel)
                 }
                 composable(Screen.Settings.route) {
                     SettingsScreen()

@@ -23,11 +23,6 @@ fun RestaurantsScreen() {
 }
 
 @Composable
-fun HistoryScreen() {
-    PlaceholderContent(icon = "\uD83D\uDCCB", title = "\uAE30\uB85D", subtitle = "\uACE7 \uB9CC\uB098\uC694!")
-}
-
-@Composable
 fun SettingsScreen() {
     PlaceholderContent(icon = "\u2699\uFE0F", title = "\uC124\uC815", subtitle = "\uACE7 \uB9CC\uB098\uC694!")
 }

@@ -1,17 +1,31 @@
 package com.example.mukmuk.ui
 
+import android.app.Application
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.mukmuk.data.local.AppDatabase
 import com.example.mukmuk.data.model.Category
 import com.example.mukmuk.data.model.HistoryEntry
 import com.example.mukmuk.data.model.Menu
+import com.example.mukmuk.data.repository.HistoryRepository
 import com.example.mukmuk.data.repository.MenuRepository
 import com.example.mukmuk.data.repository.RestaurantRepository
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 
-class RouletteViewModel : ViewModel() {
+class RouletteViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val historyRepository: HistoryRepository
+
+    init {
+        val dao = AppDatabase.getInstance(application).historyDao()
+        historyRepository = HistoryRepository(dao)
+    }
+
     var selectedCategories by mutableStateOf(emptySet<Category>())
         private set
 
@@ -27,8 +41,7 @@ class RouletteViewModel : ViewModel() {
     var rotation by mutableFloatStateOf(0f)
         private set
 
-    private val _history = mutableListOf<HistoryEntry>()
-    val history: List<HistoryEntry> get() = _history.toList()
+    val history: Flow<List<HistoryEntry>> = historyRepository.allHistory
 
     var showConfirmSnackbar by mutableStateOf(false)
         private set
@@ -85,7 +98,9 @@ class RouletteViewModel : ViewModel() {
 
     fun confirmSelection() {
         selectedMenu?.let { menu ->
-            _history.add(HistoryEntry(menu = menu))
+            viewModelScope.launch {
+                historyRepository.insert(HistoryEntry.fromMenu(menu))
+            }
             showConfirmSnackbar = true
             showResult = false
             selectedMenu = null
@@ -98,5 +113,11 @@ class RouletteViewModel : ViewModel() {
 
     fun clearAllCategories() {
         selectedCategories = emptySet()
+    }
+
+    fun clearHistory() {
+        viewModelScope.launch {
+            historyRepository.deleteAll()
+        }
     }
 }

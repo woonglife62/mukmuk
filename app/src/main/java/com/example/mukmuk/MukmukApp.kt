@@ -47,7 +47,7 @@ fun MukmukApp() {
                     HistoryScreen(viewModel = viewModel)
                 }
                 composable(Screen.Settings.route) {
-                    SettingsScreen()
+                    SettingsScreen(viewModel = viewModel)
                 }
             }
         }

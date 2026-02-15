@@ -21,6 +21,8 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -54,6 +56,7 @@ fun RouletteScreen(
     val animatable = remember { Animatable(viewModel.rotation) }
     val snackbarHostState = remember { SnackbarHostState() }
     val hapticFeedback = LocalHapticFeedback.current
+    val hapticEnabled by viewModel.hapticEnabled.collectAsState()
 
     LaunchedEffect(viewModel.showConfirmSnackbar) {
         if (viewModel.showConfirmSnackbar) {
@@ -65,7 +68,7 @@ fun RouletteScreen(
     val spinWheel = {
         if (!viewModel.isSpinning && viewModel.filteredMenus.isNotEmpty()) {
             viewModel.updateSpinning(true)
-            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+            if (hapticEnabled) hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
             scope.launch {
                 val totalRotation = 1440f + (Math.random() * 1440f).toFloat()
                 val target = viewModel.rotation + totalRotation
@@ -80,7 +83,7 @@ fun RouletteScreen(
                     viewModel.updateRotation(value)
                 }
                 viewModel.onSpinComplete(target)
-                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                if (hapticEnabled) hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                 delay(300)
                 viewModel.showResultScreen()
             }

@@ -14,17 +14,27 @@ import com.example.mukmuk.data.model.Menu
 import com.example.mukmuk.data.repository.HistoryRepository
 import com.example.mukmuk.data.repository.MenuRepository
 import com.example.mukmuk.data.repository.RestaurantRepository
+import com.example.mukmuk.data.repository.SettingsRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class RouletteViewModel(application: Application) : AndroidViewModel(application) {
 
     private val historyRepository: HistoryRepository
+    val settingsRepository = SettingsRepository(application)
 
     init {
         val dao = AppDatabase.getInstance(application).historyDao()
         historyRepository = HistoryRepository(dao)
     }
+
+    val hapticEnabled = settingsRepository.hapticEnabled
+        .stateIn(viewModelScope, SharingStarted.Eagerly, true)
+
+    val darkTheme = settingsRepository.darkTheme
+        .stateIn(viewModelScope, SharingStarted.Eagerly, true)
 
     var selectedCategories by mutableStateOf(emptySet<Category>())
         private set
@@ -118,6 +128,18 @@ class RouletteViewModel(application: Application) : AndroidViewModel(application
     fun clearHistory() {
         viewModelScope.launch {
             historyRepository.deleteAll()
+        }
+    }
+
+    fun setHapticEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.setHapticEnabled(enabled)
+        }
+    }
+
+    fun setDarkTheme(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.setDarkTheme(enabled)
         }
     }
 }

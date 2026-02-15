@@ -101,7 +101,8 @@ fun RouletteWheel(
                         center = center,
                         radius = radius,
                         startAngle = startAngle,
-                        arcAngle = arcAngle
+                        arcAngle = arcAngle,
+                        menuCount = menus.size
                     )
                 }
             }
@@ -138,31 +139,65 @@ private fun DrawScope.drawMenuText(
     center: Offset,
     radius: Float,
     startAngle: Float,
-    arcAngle: Float
+    arcAngle: Float,
+    menuCount: Int
 ) {
-    val midAngle = Math.toRadians((startAngle + arcAngle / 2f).toDouble())
-    val textRadius = radius * 0.55f
-    val textX = center.x + textRadius * kotlin.math.cos(midAngle).toFloat()
-    val textY = center.y + textRadius * kotlin.math.sin(midAngle).toFloat()
+    val midAngleDeg = startAngle + arcAngle / 2f
+    val textRadius = radius * 0.6f
+
+    // Determine if text is on the left half (would appear upside down)
+    val normalizedAngle = ((midAngleDeg % 360f) + 360f) % 360f
+    val isFlipped = normalizedAngle > 90f && normalizedAngle < 270f
+
+    // Dynamic font sizes based on menu count
+    val emojiSize = when {
+        menuCount <= 6 -> 16.dp.toPx()
+        menuCount <= 11 -> 14.dp.toPx()
+        else -> 16.dp.toPx()
+    }
+    val nameSize = when {
+        menuCount <= 6 -> 11.dp.toPx()
+        else -> 9.dp.toPx()
+    }
+    val showName = menuCount < 12
 
     drawContext.canvas.nativeCanvas.apply {
+        save()
+        translate(center.x, center.y)
+
+        if (isFlipped) {
+            rotate(midAngleDeg + 180f)
+        } else {
+            rotate(midAngleDeg)
+        }
+
+        val drawRadius = if (isFlipped) -textRadius else textRadius
+
         // Emoji
         val emojiPaint = android.graphics.Paint().apply {
-            textSize = 16.dp.toPx()
+            textSize = emojiSize
             textAlign = android.graphics.Paint.Align.CENTER
             isAntiAlias = true
         }
-        drawText(menu.emoji, textX, textY - 2.dp.toPx(), emojiPaint)
 
-        // Name
-        val namePaint = android.graphics.Paint().apply {
-            color = android.graphics.Color.WHITE
-            textSize = 11.dp.toPx()
-            textAlign = android.graphics.Paint.Align.CENTER
-            isFakeBoldText = true
-            isAntiAlias = true
-            setShadowLayer(4f, 0f, 2f, android.graphics.Color.argb(128, 0, 0, 0))
+        if (showName) {
+            drawText(menu.emoji, drawRadius, -3.dp.toPx(), emojiPaint)
+
+            // Name
+            val namePaint = android.graphics.Paint().apply {
+                color = android.graphics.Color.WHITE
+                textSize = nameSize
+                textAlign = android.graphics.Paint.Align.CENTER
+                isFakeBoldText = true
+                isAntiAlias = true
+                setShadowLayer(4f, 0f, 2f, android.graphics.Color.argb(128, 0, 0, 0))
+            }
+            drawText(menu.name, drawRadius, 12.dp.toPx(), namePaint)
+        } else {
+            // 12+ items: emoji only, centered
+            drawText(menu.emoji, drawRadius, emojiSize / 3f, emojiPaint)
         }
-        drawText(menu.name, textX, textY + 14.dp.toPx(), namePaint)
+
+        restore()
     }
 }

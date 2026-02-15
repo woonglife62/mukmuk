@@ -1,6 +1,7 @@
 package com.example.mukmuk.ui.components
 
-import android.widget.Toast
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
@@ -49,6 +50,7 @@ fun ResultScreen(
     onConfirm: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     AnimatedVisibility(
         visible = true,
         enter = fadeIn() + slideInVertically(initialOffsetY = { it / 4 })
@@ -173,6 +175,33 @@ fun ResultScreen(
                 }
             }
 
+            // Share button
+            Spacer(modifier = Modifier.height(10.dp))
+            OutlinedButton(
+                onClick = {
+                    val shareText = "오늘의 메뉴는 ${menu.emoji} ${menu.name}! 🎯 #먹먹 #mukmuk"
+                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_TEXT, shareText)
+                    }
+                    context.startActivity(Intent.createChooser(shareIntent, "공유하기"))
+                },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                border = BorderStroke(1.dp, CardBorder),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = Color.White,
+                    containerColor = CardBackground
+                )
+            ) {
+                Text(
+                    text = "📤 공유하기",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(vertical = 6.dp)
+                )
+            }
+
             Spacer(modifier = Modifier.height(20.dp))
         }
     }
@@ -221,11 +250,19 @@ private fun RestaurantCard(restaurant: Restaurant) {
                     shape = RoundedCornerShape(8.dp),
                     color = GoldAccent.copy(alpha = 0.15f),
                     modifier = Modifier.clickable {
-                        Toast.makeText(
-                            context,
-                            "\uC9C0\uB3C4 \uAE30\uB2A5 \uC900\uBE44 \uC911\uC785\uB2C8\uB2E4",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                        val geoUri = Uri.parse(
+                            "geo:${restaurant.latitude},${restaurant.longitude}?q=${Uri.encode(restaurant.name)}"
+                        )
+                        val mapIntent = Intent(Intent.ACTION_VIEW, geoUri)
+                        if (mapIntent.resolveActivity(context.packageManager) != null) {
+                            context.startActivity(mapIntent)
+                        } else {
+                            // Fallback to web browser
+                            val webUri = Uri.parse(
+                                "https://maps.google.com/?q=${Uri.encode(restaurant.name)}&ll=${restaurant.latitude},${restaurant.longitude}"
+                            )
+                            context.startActivity(Intent(Intent.ACTION_VIEW, webUri))
+                        }
                     }
                 ) {
                     Text(

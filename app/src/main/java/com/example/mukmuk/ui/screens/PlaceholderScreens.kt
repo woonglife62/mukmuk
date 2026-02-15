@@ -23,11 +23,6 @@ fun RestaurantsScreen() {
 }
 
 @Composable
-fun SettingsScreen() {
-    PlaceholderContent(icon = "\u2699\uFE0F", title = "\uC124\uC815", subtitle = "\uACE7 \uB9CC\uB098\uC694!")
-}
-
-@Composable
 private fun PlaceholderContent(icon: String, title: String, subtitle: String) {
     Box(
         modifier = Modifier

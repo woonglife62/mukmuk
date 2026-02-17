@@ -12,9 +12,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.mukmuk.navigation.Screen
+import com.example.mukmuk.ui.HistoryViewModel
+import com.example.mukmuk.ui.RestaurantViewModel
 import com.example.mukmuk.ui.RouletteViewModel
 import com.example.mukmuk.ui.components.BottomNavBar
 import com.example.mukmuk.ui.screens.HistoryScreen
+import com.example.mukmuk.ui.screens.RestaurantDetailScreen
 import com.example.mukmuk.ui.screens.RestaurantsScreen
 import com.example.mukmuk.ui.screens.RouletteScreen
 import com.example.mukmuk.ui.screens.SettingsScreen
@@ -23,6 +26,8 @@ import com.example.mukmuk.ui.screens.SettingsScreen
 fun MukmukApp() {
     val navController = rememberNavController()
     val viewModel: RouletteViewModel = viewModel()
+    val historyViewModel: HistoryViewModel = viewModel()
+    val restaurantViewModel: RestaurantViewModel = viewModel()
 
     Scaffold(
         bottomBar = { BottomNavBar(navController = navController) },
@@ -41,13 +46,26 @@ fun MukmukApp() {
                     RouletteScreen(viewModel = viewModel)
                 }
                 composable(Screen.Restaurants.route) {
-                    RestaurantsScreen()
+                    RestaurantsScreen(
+                        viewModel = restaurantViewModel,
+                        onRestaurantClick = { name ->
+                            navController.navigate(Screen.RestaurantDetail.createRoute(name))
+                        }
+                    )
                 }
                 composable(Screen.History.route) {
-                    HistoryScreen(viewModel = viewModel)
+                    HistoryScreen(viewModel = historyViewModel)
                 }
                 composable(Screen.Settings.route) {
                     SettingsScreen(viewModel = viewModel)
+                }
+                composable(Screen.RestaurantDetail.route) { backStackEntry ->
+                    val name = backStackEntry.arguments?.getString("name") ?: ""
+                    RestaurantDetailScreen(
+                        restaurantName = name,
+                        viewModel = restaurantViewModel,
+                        onBack = { navController.popBackStack() }
+                    )
                 }
             }
         }

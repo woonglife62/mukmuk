@@ -1,5 +1,7 @@
 package com.example.mukmuk.navigation
 
+import android.net.Uri
+
 sealed class Screen(
     val route: String,
     val icon: String,
@@ -9,6 +11,9 @@ sealed class Screen(
     data object Restaurants : Screen("restaurants", "\uD83D\uDCCD", "\uB9DB\uC9D1")
     data object History : Screen("history", "\uD83D\uDCCB", "\uAE30\uB85D")
     data object Settings : Screen("settings", "\u2699\uFE0F", "\uC124\uC815")
+    data object RestaurantDetail : Screen("restaurant_detail/{name}", "", "") {
+        fun createRoute(name: String) = "restaurant_detail/${Uri.encode(name)}"
+    }
 
     companion object {
         val bottomNavItems = listOf(Roulette, Restaurants, History, Settings)

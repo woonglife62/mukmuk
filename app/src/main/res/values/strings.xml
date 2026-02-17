@@ -1,3 +1,95 @@
 <resources>
-    <string name="app_name">mukmuk</string>
+    <string name="app_name">먹먹</string>
+
+    <!-- Navigation -->
+    <string name="nav_roulette">룰렛</string>
+    <string name="nav_restaurants">맛집</string>
+    <string name="nav_history">기록</string>
+    <string name="nav_settings">설정</string>
+    <string name="nav_tab_description">%s 탭</string>
+
+    <!-- Roulette Screen -->
+    <string name="roulette_title">오늘 뭐 먹지? 🤔</string>
+    <string name="roulette_subtitle">고민은 그만, 룰렛에 맡겨!</string>
+    <string name="roulette_empty_category">선택한 카테고리에 메뉴가 없어요</string>
+    <string name="roulette_show_all">전체 보기</string>
+    <string name="roulette_spinning">🎰 돌리는 중…</string>
+    <string name="roulette_spin">🎯 돌려!</string>
+    <string name="roulette_confirm_snackbar">맛있게 드세요! 🍽️</string>
+    <string name="roulette_wheel_description">음식 룰렛 휠. 중앙 GO 버튼을 탭하여 회전</string>
+
+    <!-- Category -->
+    <string name="category_all">전체</string>
+    <string name="category_korean">한식</string>
+    <string name="category_japanese">일식</string>
+    <string name="category_chinese">중식</string>
+    <string name="category_western">양식</string>
+    <string name="category_snack">분식</string>
+    <string name="category_southeast_asian">동남아</string>
+
+    <!-- History Screen -->
+    <string name="history_title">선택 기록</string>
+    <string name="history_delete_all">전체 삭제</string>
+    <string name="history_delete_dialog_title">기록 삭제</string>
+    <string name="history_delete_dialog_message">모든 선택 기록을 삭제하시겠습니까?</string>
+    <string name="history_empty_title">아직 기록이 없어요</string>
+    <string name="history_empty_subtitle">룰렛을 돌려 메뉴를 선택해보세요!</string>
+    <string name="history_today">오늘</string>
+    <string name="history_yesterday">어제</string>
+    <string name="history_stats_total">총 %d회 선택</string>
+    <string name="history_stats_top_menus">자주 선택한 메뉴</string>
+    <string name="history_stats_categories">카테고리별 비율</string>
+    <string name="history_stats_count">%d회</string>
+    <string name="history_deleted_snackbar">기록이 삭제되었습니다</string>
+    <string name="history_undo">실행취소</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_title">설정</string>
+    <string name="settings_section_general">일반</string>
+    <string name="settings_haptic_title">햅틱 피드백</string>
+    <string name="settings_haptic_subtitle">룰렛 조작 시 진동 피드백</string>
+    <string name="settings_sound_title">사운드 효과</string>
+    <string name="settings_sound_subtitle">룰렛 회전 시 효과음</string>
+    <string name="settings_dark_mode_title">다크 모드</string>
+    <string name="settings_dark_mode_subtitle">어두운 테마 사용 (라이트 모드 준비 중)</string>
+    <string name="settings_section_data">데이터</string>
+    <string name="settings_clear_history_title">기록 초기화</string>
+    <string name="settings_clear_history_subtitle">모든 선택 기록을 삭제합니다</string>
+    <string name="settings_clear_history_button">초기화</string>
+    <string name="settings_clear_dialog_title">기록 초기화</string>
+    <string name="settings_clear_dialog_message">모든 선택 기록을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.</string>
+    <string name="settings_section_info">정보</string>
+    <string name="settings_version_title">앱 버전</string>
+    <string name="settings_app_title">먹먹</string>
+    <string name="settings_app_subtitle">오늘 뭐 먹지?</string>
+
+    <!-- Restaurants Screen -->
+    <string name="restaurants_title">근처 맛집</string>
+    <string name="restaurants_location">서울 강남구 기준</string>
+    <string name="restaurants_search_hint">맛집 검색…</string>
+    <string name="restaurants_count">%d개의 맛집</string>
+    <string name="restaurants_review_count">리뷰 %d개</string>
+
+    <!-- Result Screen -->
+    <string name="result_selected_menu_description">선택된 메뉴: %1$s, %2$s</string>
+    <string name="result_nearby_restaurants">📍 근처 맛집</string>
+    <string name="result_retry">🔄 다시 돌리기</string>
+    <string name="result_confirm">✅ 이걸로 결정!</string>
+    <string name="result_share">📤 공유하기</string>
+    <string name="result_share_text">오늘의 메뉴는 %1$s %2$s! 🎯 #먹먹 #mukmuk</string>
+    <string name="result_share_chooser">공유하기</string>
+    <string name="result_map_view">지도 보기</string>
+
+    <!-- Menu Grid -->
+    <string name="menu_grid_tip">💡 TIP: 카테고리 필터로 원하는 음식만 골라보세요</string>
+
+    <!-- Star Rating -->
+    <string name="star_rating_description">별점 %1$.1f점, 5점 만점</string>
+
+    <!-- Common -->
+    <string name="delete">삭제</string>
+    <string name="cancel">취소</string>
+
+    <!-- Restaurant Category Emojis (for RestaurantsScreen filter chips) -->
+    <string name="emoji_all">🍽️</string>
 </resources>

@@ -1,5 +1,6 @@
 package com.example.mukmuk.ui.theme
 
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
 val DarkBackground = Color(0xFF0F0F23)
@@ -14,3 +15,27 @@ val TextHint = Color.White.copy(alpha = 0.3f)
 val CardBackground = Color.White.copy(alpha = 0.05f)
 val CardBorder = Color.White.copy(alpha = 0.08f)
 val ChipBorder = Color.White.copy(alpha = 0.12f)
+
+data class MukmukExtendedColors(
+    val textSecondary: Color,
+    val textTertiary: Color,
+    val textHint: Color,
+    val cardBackground: Color,
+    val cardBorder: Color,
+    val chipBorder: Color,
+    val goldAccentDark: Color,
+    val error: Color
+)
+
+val DarkMukmukColors = MukmukExtendedColors(
+    textSecondary = TextSecondary,
+    textTertiary = TextTertiary,
+    textHint = TextHint,
+    cardBackground = CardBackground,
+    cardBorder = CardBorder,
+    chipBorder = ChipBorder,
+    goldAccentDark = GoldAccentDark,
+    error = Color(0xFFFF6B6B)
+)
+
+val LocalMukmukColors = staticCompositionLocalOf { DarkMukmukColors }

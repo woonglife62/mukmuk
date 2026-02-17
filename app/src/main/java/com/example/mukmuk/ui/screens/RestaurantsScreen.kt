@@ -13,19 +13,19 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,7 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.mukmuk.data.model.Category
 import com.example.mukmuk.data.model.Restaurant
-import com.example.mukmuk.data.repository.RestaurantRepository
+import com.example.mukmuk.ui.RestaurantViewModel
 import com.example.mukmuk.ui.components.StarRating
 import com.example.mukmuk.ui.theme.CardBackground
 import com.example.mukmuk.ui.theme.CardBorder
@@ -53,16 +53,12 @@ import com.example.mukmuk.ui.theme.TextSecondary
 import com.example.mukmuk.ui.theme.TextTertiary
 
 @Composable
-fun RestaurantsScreen() {
-    var searchQuery by remember { mutableStateOf("") }
-    var selectedCategory by remember { mutableStateOf<Category?>(null) }
-
-    val restaurants = remember(searchQuery, selectedCategory) {
-        when {
-            searchQuery.isNotBlank() -> RestaurantRepository.searchRestaurants(searchQuery)
-            else -> RestaurantRepository.getRestaurantsByCategory(selectedCategory)
-        }
-    }
+fun RestaurantsScreen(
+    viewModel: RestaurantViewModel,
+    onRestaurantClick: (String) -> Unit
+) {
+    val favorites by viewModel.favorites.collectAsState()
+    val restaurants = viewModel.filteredRestaurants
 
     Column(
         modifier = Modifier
@@ -101,12 +97,12 @@ fun RestaurantsScreen() {
                 .border(1.dp, ChipBorder, RoundedCornerShape(12.dp))
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
-            if (searchQuery.isEmpty()) {
+            if (viewModel.searchQuery.isEmpty()) {
                 Text(text = "맛집 검색...", color = TextHint, fontSize = 14.sp)
             }
             BasicTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
+                value = viewModel.searchQuery,
+                onValueChange = { viewModel.updateSearchQuery(it) },
                 textStyle = TextStyle(color = TextPrimary, fontSize = 14.sp),
                 cursorBrush = SolidColor(GoldAccent),
                 singleLine = true,
@@ -116,7 +112,7 @@ fun RestaurantsScreen() {
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Category chips
+        // Category chips + favorites filter
         Row(
             modifier = Modifier
                 .horizontalScroll(rememberScrollState())
@@ -126,8 +122,17 @@ fun RestaurantsScreen() {
             CategoryFilterChip(
                 label = "전체",
                 emoji = "🍽️",
-                selected = selectedCategory == null,
-                onClick = { selectedCategory = null }
+                selected = viewModel.selectedCategory == null && !viewModel.showFavoritesOnly,
+                onClick = {
+                    viewModel.updateSelectedCategory(null)
+                    if (viewModel.showFavoritesOnly) viewModel.toggleFavoritesOnly()
+                }
+            )
+            CategoryFilterChip(
+                label = "즐겨찾기",
+                emoji = "♥",
+                selected = viewModel.showFavoritesOnly,
+                onClick = { viewModel.toggleFavoritesOnly() }
             )
             Category.entries.forEach { category ->
                 val emoji = when (category) {
@@ -141,8 +146,12 @@ fun RestaurantsScreen() {
                 CategoryFilterChip(
                     label = category.displayName,
                     emoji = emoji,
-                    selected = selectedCategory == category,
-                    onClick = { selectedCategory = if (selectedCategory == category) null else category }
+                    selected = viewModel.selectedCategory == category,
+                    onClick = {
+                        viewModel.updateSelectedCategory(
+                            if (viewModel.selectedCategory == category) null else category
+                        )
+                    }
                 )
             }
         }
@@ -165,7 +174,13 @@ fun RestaurantsScreen() {
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             items(restaurants) { restaurant ->
-                RestaurantDetailCard(restaurant)
+                val isFavorite = favorites.any { it.restaurantName == restaurant.name }
+                RestaurantDetailCard(
+                    restaurant = restaurant,
+                    isFavorite = isFavorite,
+                    onFavoriteClick = { viewModel.toggleFavorite(restaurant.name) },
+                    onCardClick = { onRestaurantClick(restaurant.name) }
+                )
             }
             item { Spacer(modifier = Modifier.height(80.dp)) }
         }
@@ -207,13 +222,19 @@ private fun CategoryFilterChip(
 }
 
 @Composable
-private fun RestaurantDetailCard(restaurant: Restaurant) {
+private fun RestaurantDetailCard(
+    restaurant: Restaurant,
+    isFavorite: Boolean,
+    onFavoriteClick: () -> Unit,
+    onCardClick: () -> Unit
+) {
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = CardBackground,
         modifier = Modifier
             .fillMaxWidth()
             .border(1.dp, CardBorder, RoundedCornerShape(16.dp))
+            .clickable(onClick = onCardClick)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -239,24 +260,45 @@ private fun RestaurantDetailCard(restaurant: Restaurant) {
                         )
                     }
                 }
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = restaurant.distance,
-                        color = GoldAccent,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    if (restaurant.category != null) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = GoldAccent.copy(alpha = 0.1f)
-                        ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            text = restaurant.distance,
+                            color = GoldAccent,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        if (restaurant.category != null) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = GoldAccent.copy(alpha = 0.1f)
+                            ) {
+                                Text(
+                                    text = restaurant.category.displayName,
+                                    color = GoldAccent,
+                                    fontSize = 11.sp,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                    }
+                    // Favorite heart button
+                    Surface(
+                        shape = CircleShape,
+                        color = if (isFavorite) GoldAccent.copy(alpha = 0.15f) else Color.Transparent,
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clickable(onClick = onFavoriteClick)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
                             Text(
-                                text = restaurant.category.displayName,
-                                color = GoldAccent,
-                                fontSize = 11.sp,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                text = if (isFavorite) "♥" else "♡",
+                                color = if (isFavorite) GoldAccent else TextSecondary,
+                                fontSize = 18.sp
                             )
                         }
                     }

@@ -37,7 +37,8 @@ class MukmukViewModelFactory(private val container: AppContainer) : ViewModelPro
                 container.historyRepository,
                 container.settingsRepository,
                 container.locationService,
-                container.remoteRestaurantRepository
+                container.remoteRestaurantRepository,
+                container.visitRecordDao
             ) as T
         modelClass.isAssignableFrom(HistoryViewModel::class.java) ->
             HistoryViewModel(container.visitRecordDao) as T

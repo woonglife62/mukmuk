@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -50,11 +49,12 @@ fun ResultScreen(
     onRetry: () -> Unit,
     onConfirm: () -> Unit,
     onRestaurantClick: (String) -> Unit = {},
+    onSelectRestaurant: (Restaurant) -> Unit = {},
+    onShareRestaurant: (Restaurant) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val extColors = MaterialTheme.mukmukColors
-    val context = LocalContext.current
     AnimatedVisibility(
         visible = true,
         enter = fadeIn() + slideInVertically(initialOffsetY = { it / 4 })
@@ -108,7 +108,28 @@ fun ResultScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Action buttons row - RIGHT AFTER the selected menu card
+            OutlinedButton(
+                onClick = onRetry,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                border = BorderStroke(1.dp, extColors.cardBorder),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = colorScheme.onSurface,
+                    containerColor = extColors.cardBackground
+                )
+            ) {
+                Text(
+                    text = "\uD83D\uDD04 \uB2E4\uC2DC \uB3CC\uB9AC\uAE30",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(vertical = 6.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Nearby restaurants header
             val hasRealApiResults = restaurants.isNotEmpty() &&
@@ -175,79 +196,12 @@ fun ResultScreen(
                 restaurants.forEach { restaurant ->
                     RestaurantCard(
                         restaurant = restaurant,
-                        onClick = { onRestaurantClick(restaurant.name) }
+                        onClick = { onRestaurantClick(restaurant.name) },
+                        onSelectRestaurant = { onSelectRestaurant(restaurant) },
+                        onShareRestaurant = { onShareRestaurant(restaurant) }
                     )
                     Spacer(modifier = Modifier.height(10.dp))
                 }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Action buttons
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                OutlinedButton(
-                    onClick = onRetry,
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(14.dp),
-                    border = BorderStroke(1.dp, extColors.cardBorder),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = colorScheme.onSurface,
-                        containerColor = extColors.cardBackground
-                    )
-                ) {
-                    Text(
-                        text = "\uD83D\uDD04 \uB2E4\uC2DC \uB3CC\uB9AC\uAE30",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(vertical = 6.dp)
-                    )
-                }
-                Button(
-                    onClick = onConfirm,
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = colorScheme.primary,
-                        contentColor = colorScheme.background
-                    )
-                ) {
-                    Text(
-                        text = "\u2705 \uC774\uAC78\uB85C \uACB0\uC815!",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(vertical = 6.dp)
-                    )
-                }
-            }
-
-            // Share button
-            Spacer(modifier = Modifier.height(10.dp))
-            OutlinedButton(
-                onClick = {
-                    val shareText = "\uC624\uB298\uC758 \uBA54\uB274\uB294 ${menu.emoji} ${menu.name}! \uD83C\uDFAF #\uBA39\uBA39 #mukmuk"
-                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                        type = "text/plain"
-                        putExtra(Intent.EXTRA_TEXT, shareText)
-                    }
-                    context.startActivity(Intent.createChooser(shareIntent, "\uACF5\uC720\uD558\uAE30"))
-                },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-                border = BorderStroke(1.dp, extColors.cardBorder),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = colorScheme.onSurface,
-                    containerColor = extColors.cardBackground
-                )
-            ) {
-                Text(
-                    text = "\uD83D\uDCE4 \uACF5\uC720\uD558\uAE30",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(vertical = 6.dp)
-                )
             }
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -256,7 +210,12 @@ fun ResultScreen(
 }
 
 @Composable
-private fun RestaurantCard(restaurant: Restaurant, onClick: () -> Unit = {}) {
+private fun RestaurantCard(
+    restaurant: Restaurant,
+    onClick: () -> Unit = {},
+    onSelectRestaurant: () -> Unit = {},
+    onShareRestaurant: () -> Unit = {}
+) {
     val colorScheme = MaterialTheme.colorScheme
     val extColors = MaterialTheme.mukmukColors
     val context = LocalContext.current
@@ -269,96 +228,105 @@ private fun RestaurantCard(restaurant: Restaurant, onClick: () -> Unit = {}) {
             .border(1.dp, extColors.cardBorder, RoundedCornerShape(16.dp))
             .clickable { onClick() }
     ) {
-        Row(
-            modifier = Modifier.padding(18.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = restaurant.name,
-                    color = colorScheme.onSurface,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                if (restaurant.rating > 0f) {
-                    StarRating(rating = restaurant.rating)
-                    Spacer(modifier = Modifier.height(2.dp))
+        Column(modifier = Modifier.padding(18.dp)) {
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "\uB9AC\uBDF0 ${restaurant.reviews}\uAC1C",
-                        color = extColors.textHint,
-                        fontSize = 11.sp
+                        text = restaurant.name,
+                        color = colorScheme.onSurface,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold
                     )
-                } else if (restaurant.placeUrl.isNotEmpty()) {
-                    Text(
-                        text = "\uD83D\uDCCD \uCE74\uCE74\uC624\uB9F5\uC5D0\uC11C \uBCF4\uAE30",
-                        color = colorScheme.primary,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier.clickable {
-                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(restaurant.placeUrl)))
-                        }
-                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    if (restaurant.rating > 0f) {
+                        StarRating(rating = restaurant.rating)
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "\uB9AC\uBDF0 ${restaurant.reviews}\uAC1C",
+                            color = extColors.textHint,
+                            fontSize = 11.sp
+                        )
+                    } else if (restaurant.placeUrl.isNotEmpty()) {
+                        Text(
+                            text = "\uD83D\uDCCD \uCE74\uCE74\uC624\uB9F5\uC5D0\uC11C \uBCF4\uAE30",
+                            color = colorScheme.primary,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.clickable {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(restaurant.placeUrl)))
+                            }
+                        )
+                    }
+                    if (restaurant.address.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "\uD83D\uDCCD ${restaurant.address}",
+                            color = extColors.textTertiary,
+                            fontSize = 11.sp,
+                            maxLines = 1
+                        )
+                    }
+                    if (restaurant.phone.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "\uD83D\uDCDE ${restaurant.phone}",
+                            color = extColors.textTertiary,
+                            fontSize = 11.sp
+                        )
+                    }
                 }
-                if (restaurant.address.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = "\uD83D\uDCCD ${restaurant.address}",
-                        color = extColors.textTertiary,
-                        fontSize = 11.sp,
-                        maxLines = 1
-                    )
-                }
-                if (restaurant.phone.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = "\uD83D\uDCDE ${restaurant.phone}",
-                        color = extColors.textTertiary,
-                        fontSize = 11.sp
-                    )
-                }
-            }
-            Column(horizontalAlignment = Alignment.End) {
                 if (restaurant.distance != "0m" && restaurant.distance.isNotEmpty()) {
                     Text(
                         text = restaurant.distance,
                         color = colorScheme.primary,
                         fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(start = 8.dp)
                     )
-                    Spacer(modifier = Modifier.height(6.dp))
                 }
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = colorScheme.primary.copy(alpha = 0.15f),
-                    modifier = Modifier
-                        .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
-                        .clickable {
-                        if (restaurant.placeUrl.isNotEmpty()) {
-                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(restaurant.placeUrl)))
-                        } else {
-                            val geoUri = Uri.parse(
-                                "geo:${restaurant.latitude},${restaurant.longitude}?q=${Uri.encode(restaurant.name)}"
-                            )
-                            val mapIntent = Intent(Intent.ACTION_VIEW, geoUri)
-                            if (mapIntent.resolveActivity(context.packageManager) != null) {
-                                context.startActivity(mapIntent)
-                            } else {
-                                val webUri = Uri.parse(
-                                    "https://maps.google.com/?q=${Uri.encode(restaurant.name)}&ll=${restaurant.latitude},${restaurant.longitude}"
-                                )
-                                context.startActivity(Intent(Intent.ACTION_VIEW, webUri))
-                            }
-                        }
-                    }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Per-restaurant action buttons
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(
+                    onClick = onSelectRestaurant,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = colorScheme.primary,
+                        contentColor = colorScheme.background
+                    )
                 ) {
                     Text(
-                        text = "\uC9C0\uB3C4 \uBCF4\uAE30",
-                        color = colorScheme.primary,
+                        text = "\uC5EC\uAE30\uB85C \uACB0\uC815",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(vertical = 2.dp)
+                    )
+                }
+                OutlinedButton(
+                    onClick = onShareRestaurant,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(10.dp),
+                    border = BorderStroke(1.dp, extColors.cardBorder),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = colorScheme.onSurface,
+                        containerColor = extColors.cardBackground
+                    )
+                ) {
+                    Text(
+                        text = "\uD83D\uDCE4 \uACF5\uC720",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp)
+                        modifier = Modifier.padding(vertical = 2.dp)
                     )
                 }
             }

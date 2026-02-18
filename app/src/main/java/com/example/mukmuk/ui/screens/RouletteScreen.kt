@@ -1,6 +1,7 @@
 package com.example.mukmuk.ui.screens
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.AudioManager
 import android.media.ToneGenerator
@@ -50,6 +51,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import com.example.mukmuk.data.model.Restaurant
 import com.example.mukmuk.ui.RouletteViewModel
 import com.example.mukmuk.ui.components.CategoryChips
 import com.example.mukmuk.ui.components.LocationPermissionDialog
@@ -64,7 +66,9 @@ import kotlin.random.Random
 @Composable
 fun RouletteScreen(
     viewModel: RouletteViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onRestaurantClick: (String) -> Unit = {},
+    onSelectRestaurant: (Restaurant) -> Unit = {}
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val extColors = MaterialTheme.mukmukColors
@@ -132,7 +136,7 @@ fun RouletteScreen(
 
     LaunchedEffect(viewModel.showConfirmSnackbar) {
         if (viewModel.showConfirmSnackbar) {
-            snackbarHostState.showSnackbar("\uB9DB\uC788\uAC8C \uB4DC\uC138\uC694! \uD83C\uDF7D\uFE0F")
+            snackbarHostState.showSnackbar(viewModel.snackbarMessage.ifEmpty { "\uB9DB\uC788\uAC8C \uB4DC\uC138\uC694! \uD83C\uDF7D\uFE0F" })
             viewModel.dismissSnackbar()
         }
     }
@@ -145,14 +149,14 @@ fun RouletteScreen(
             viewModel.updateSpinning(true)
             if (hapticEnabled) hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
             scope.launch {
-                val totalRotation = 1440f + (Math.random() * 1440f).toFloat()
+                val totalRotation = 2160f + (Math.random() * 1440f).toFloat()
                 val target = viewModel.rotation + totalRotation
                 animatable.snapTo(viewModel.rotation)
                 animatable.animateTo(
                     targetValue = target,
                     animationSpec = tween(
-                        durationMillis = 4000,
-                        easing = CubicBezierEasing(0.0f, 0.0f, 0.2f, 1.0f)
+                        durationMillis = 2500,
+                        easing = CubicBezierEasing(0.1f, 0.0f, 0.15f, 1.0f)
                     )
                 ) {
                     viewModel.updateRotation(value)
@@ -287,7 +291,24 @@ fun RouletteScreen(
                     restaurants = viewModel.restaurants,
                     isLoading = viewModel.isLoadingRestaurants,
                     onRetry = { viewModel.resetToWheel() },
-                    onConfirm = { viewModel.confirmSelection() }
+                    onConfirm = { viewModel.confirmSelection() },
+                    onRestaurantClick = onRestaurantClick,
+                    onSelectRestaurant = { restaurant ->
+                        viewModel.selectRestaurant(restaurant)
+                        onSelectRestaurant(restaurant)
+                    },
+                    onShareRestaurant = { restaurant ->
+                        val shareText = if (restaurant.placeUrl.isNotEmpty()) {
+                            "${restaurant.name}\n${restaurant.placeUrl}\n#\uBA39\uBA39 #mukmuk"
+                        } else {
+                            "${restaurant.name}\n${restaurant.address}\n#\uBA39\uBA39 #mukmuk"
+                        }
+                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, shareText)
+                        }
+                        context.startActivity(Intent.createChooser(shareIntent, "\uACF5\uC720\uD558\uAE30"))
+                    }
                 )
             }
             Spacer(modifier = Modifier.height(80.dp))

@@ -9,6 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -22,6 +23,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -31,11 +33,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
@@ -60,12 +62,15 @@ fun RestaurantDetailScreen(
     val extColors = MaterialTheme.mukmukColors
     val context = LocalContext.current
     val favorites by viewModel.favorites.collectAsState()
-    val isFavorite = favorites.any { it.restaurantName == restaurantName }
+    // Decode name in case it came URL-encoded from navigation
+    val decodedName = try { Uri.decode(restaurantName) } catch (_: Exception) { restaurantName }
+    val isFavorite = favorites.any { it.restaurantName == decodedName }
 
-    // Try API results first, then fallback to local
+    // Try API results first, then temporary (roulette) restaurants, then local fallback
     val apiResults = (viewModel.apiSearchState as? RestaurantUiState.Success)?.restaurants
-    val restaurant = apiResults?.find { it.name == restaurantName }
-        ?: RestaurantRepository.allRestaurants.find { it.name == restaurantName }
+    val restaurant = apiResults?.find { it.name == decodedName }
+        ?: viewModel.temporaryRestaurants.find { it.name == decodedName }
+        ?: RestaurantRepository.allRestaurants.find { it.name == decodedName }
 
     Column(
         modifier = Modifier
@@ -117,7 +122,7 @@ fun RestaurantDetailScreen(
                 modifier = Modifier
                     .size(40.dp)
                     .border(1.dp, if (isFavorite) colorScheme.primary else extColors.cardBorder, CircleShape)
-                    .clickable { viewModel.toggleFavorite(restaurantName) }
+                    .clickable { viewModel.toggleFavorite(decodedName) }
             ) {
                 Row(
                     modifier = Modifier.fillMaxSize(),
@@ -201,11 +206,12 @@ fun RestaurantDetailScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Embedded map (only for restaurants with real coordinates, not default hardcoded ones)
+        // Embedded map - show for all restaurants with non-default coordinates
         val isHardcodedLocation = restaurant.latitude == 37.4979 && restaurant.longitude == 127.0276
         if (!isHardcodedLocation) {
             val lifecycleOwner = LocalLifecycleOwner.current
             val webViewState = remember { mutableStateOf<WebView?>(null) }
+            var isMapLoading by remember { mutableStateOf(true) }
 
             DisposableEffect(lifecycleOwner) {
                 val observer = LifecycleEventObserver { _, event ->
@@ -248,25 +254,71 @@ fun RestaurantDetailScreen(
                     val mapUrl = "https://www.openstreetmap.org/export/embed.html?" +
                             "bbox=${lng - 0.005},${lat - 0.003},${lng + 0.005},${lat + 0.003}" +
                             "&layer=mapnik&marker=${lat},${lng}"
-                    AndroidView(
-                        factory = { ctx ->
-                            WebView(ctx).apply {
-                                webViewClient = object : WebViewClient() {
-                                    override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
-                                        val url = request?.url?.toString() ?: return true
-                                        val allowedHosts = listOf("openstreetmap.org", "www.openstreetmap.org", "tile.openstreetmap.org")
-                                        return !allowedHosts.any { url.contains(it) }
-                                    }
-                                }
-                                settings.javaScriptEnabled = true
-                                loadUrl(mapUrl)
-                                webViewState.value = this
-                            }
-                        },
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(200.dp)
                             .clip(RoundedCornerShape(12.dp))
+                    ) {
+                        AndroidView(
+                            factory = { ctx ->
+                                WebView(ctx).apply {
+                                    webViewClient = object : WebViewClient() {
+                                        override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+                                            val url = request?.url?.toString() ?: return true
+                                            val allowedHosts = listOf("openstreetmap.org", "www.openstreetmap.org", "tile.openstreetmap.org")
+                                            return !allowedHosts.any { url.contains(it) }
+                                        }
+                                        override fun onPageFinished(view: WebView?, url: String?) {
+                                            isMapLoading = false
+                                        }
+                                    }
+                                    settings.javaScriptEnabled = true
+                                    loadUrl(mapUrl)
+                                    webViewState.value = this
+                                }
+                            },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                        if (isMapLoading) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(colorScheme.surface.copy(alpha = 0.7f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(
+                                    color = colorScheme.primary,
+                                    modifier = Modifier.size(32.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+        } else if (restaurant.address.isNotEmpty()) {
+            // For hardcoded/fallback locations, show address text section
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = extColors.cardBackground,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .border(1.dp, extColors.cardBorder, RoundedCornerShape(16.dp))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "\uD83D\uDDFA\uFE0F \uC704\uCE58",
+                        color = colorScheme.onSurface,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = restaurant.address,
+                        color = extColors.textSecondary,
+                        fontSize = 14.sp
                     )
                 }
             }
@@ -353,7 +405,7 @@ fun RestaurantDetailScreen(
             Spacer(modifier = Modifier.height(12.dp))
         }
 
-        // Kakao Map link button
+        // Map button: prefer Kakao Map if placeUrl exists, fallback to geo intent for real coords
         if (restaurant.placeUrl.isNotEmpty()) {
             Surface(
                 shape = RoundedCornerShape(16.dp),
@@ -382,12 +434,9 @@ fun RestaurantDetailScreen(
                     )
                 }
             }
-
             Spacer(modifier = Modifier.height(12.dp))
-        }
-
-        // Map button (geo intent fallback) - only show for real coordinates
-        if (!isHardcodedLocation) {
+        } else if (!isHardcodedLocation) {
+            // Geo intent fallback only when no placeUrl and coordinates are real
             Surface(
                 shape = RoundedCornerShape(16.dp),
                 color = colorScheme.primary.copy(alpha = 0.15f),
@@ -418,7 +467,6 @@ fun RestaurantDetailScreen(
                     )
                 }
             }
-
             Spacer(modifier = Modifier.height(12.dp))
         }
 

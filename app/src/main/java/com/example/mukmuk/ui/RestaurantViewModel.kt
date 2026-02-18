@@ -63,6 +63,13 @@ class RestaurantViewModel(
     var apiSearchState by mutableStateOf<RestaurantUiState>(RestaurantUiState.Idle)
         private set
 
+    var temporaryRestaurants by mutableStateOf<List<Restaurant>>(emptyList())
+        private set
+
+    fun updateTemporaryRestaurants(restaurants: List<Restaurant>) {
+        temporaryRestaurants = restaurants
+    }
+
     val favorites: StateFlow<List<FavoriteRestaurant>> = favoriteDao.getAllFavorites()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 

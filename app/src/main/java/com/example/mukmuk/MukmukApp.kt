@@ -49,7 +49,17 @@ fun MukmukApp() {
                 startDestination = Screen.Roulette.route
             ) {
                 composable(Screen.Roulette.route) {
-                    RouletteScreen(viewModel = viewModel)
+                    RouletteScreen(
+                        viewModel = viewModel,
+                        onRestaurantClick = { name ->
+                            restaurantViewModel.updateTemporaryRestaurants(viewModel.restaurants)
+                            navController.navigate(Screen.RestaurantDetail.createRoute(name))
+                        },
+                        onSelectRestaurant = { restaurant ->
+                            // Restaurant already recorded by RouletteViewModel.selectRestaurant()
+                            // Just stay on the roulette screen (auto-resets)
+                        }
+                    )
                 }
                 composable(Screen.Restaurants.route) {
                     RestaurantsScreen(

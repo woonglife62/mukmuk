@@ -6,11 +6,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.mukmuk.data.local.VisitRecordDao
 import com.example.mukmuk.data.location.LocationService
 import com.example.mukmuk.data.model.Category
 import com.example.mukmuk.data.model.HistoryEntry
 import com.example.mukmuk.data.model.Menu
 import com.example.mukmuk.data.model.Restaurant
+import com.example.mukmuk.data.model.VisitRecord
 import com.example.mukmuk.data.repository.HistoryRepository
 import com.example.mukmuk.data.repository.MenuRepository
 import com.example.mukmuk.data.repository.RemoteRestaurantRepository
@@ -25,7 +27,8 @@ class RouletteViewModel(
     private val historyRepository: HistoryRepository,
     val settingsRepository: SettingsRepository,
     private val locationService: LocationService,
-    private val remoteRestaurantRepository: RemoteRestaurantRepository
+    private val remoteRestaurantRepository: RemoteRestaurantRepository,
+    private val visitRecordDao: VisitRecordDao
 ) : ViewModel() {
 
     val hapticEnabled = settingsRepository.hapticEnabled
@@ -55,6 +58,9 @@ class RouletteViewModel(
     val history: Flow<List<HistoryEntry>> = historyRepository.allHistory
 
     var showConfirmSnackbar by mutableStateOf(false)
+        private set
+
+    var snackbarMessage by mutableStateOf("")
         private set
 
     val categories = Category.entries.toList()
@@ -112,11 +118,21 @@ class RouletteViewModel(
         restaurants = emptyList()
     }
 
-    fun confirmSelection() {
-        selectedMenu?.let { menu ->
-            viewModelScope.launch {
-                historyRepository.insert(HistoryEntry.fromMenu(menu))
-            }
+    fun selectRestaurant(restaurant: Restaurant) {
+        viewModelScope.launch {
+            val record = VisitRecord(
+                restaurantName = restaurant.name,
+                category = selectedMenu?.category?.displayName ?: "",
+                address = restaurant.address,
+                phone = restaurant.phone,
+                placeUrl = restaurant.placeUrl,
+                latitude = restaurant.latitude,
+                longitude = restaurant.longitude,
+                visited = true,
+                visitDate = System.currentTimeMillis()
+            )
+            visitRecordDao.insert(record)
+            snackbarMessage = "식당이 기록되었습니다! \uD83C\uDF7D\uFE0F"
             showConfirmSnackbar = true
             showResult = false
             selectedMenu = null
@@ -124,8 +140,15 @@ class RouletteViewModel(
         }
     }
 
+    fun confirmSelection() {
+        showResult = false
+        selectedMenu = null
+        restaurants = emptyList()
+    }
+
     fun dismissSnackbar() {
         showConfirmSnackbar = false
+        snackbarMessage = ""
     }
 
     fun clearAllCategories() {

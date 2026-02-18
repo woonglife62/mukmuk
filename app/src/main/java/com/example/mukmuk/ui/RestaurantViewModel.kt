@@ -54,6 +54,18 @@ class RestaurantViewModel(
     var currentLongitude by mutableStateOf(127.0276)
         private set
 
+    var selectedCategory by mutableStateOf<Category?>(null)
+        private set
+
+    var showFavoritesOnly by mutableStateOf(false)
+        private set
+
+    var apiSearchState by mutableStateOf<RestaurantUiState>(RestaurantUiState.Idle)
+        private set
+
+    val favorites: StateFlow<List<FavoriteRestaurant>> = favoriteDao.getAllFavorites()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     init {
         @OptIn(FlowPreview::class)
         _searchQueryFlow
@@ -69,18 +81,6 @@ class RestaurantViewModel(
             searchFromApi("맛집")
         }
     }
-
-    var selectedCategory by mutableStateOf<Category?>(null)
-        private set
-
-    var showFavoritesOnly by mutableStateOf(false)
-        private set
-
-    var apiSearchState by mutableStateOf<RestaurantUiState>(RestaurantUiState.Idle)
-        private set
-
-    val favorites: StateFlow<List<FavoriteRestaurant>> = favoriteDao.getAllFavorites()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val filteredRestaurants: List<Restaurant>
         get() {

@@ -57,6 +57,12 @@
 # --- Glance (App Widget) ---
 -keep class androidx.glance.** { *; }
 
+# --- ViewModels ---
+-keep class * extends androidx.lifecycle.ViewModel { *; }
+
+# --- Compose state delegates ---
+-keep class androidx.compose.runtime.** { *; }
+
 # --- Stack trace readability ---
 -keepattributes SourceFile,LineNumberTable
 -renamesourcefileattribute SourceFile

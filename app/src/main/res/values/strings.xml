@@ -21,10 +21,12 @@
     <!-- Category -->
     <string name="category_all">전체</string>
     <string name="category_korean">한식</string>
+    <string name="category_chicken">치킨</string>
     <string name="category_japanese">일식</string>
     <string name="category_chinese">중식</string>
     <string name="category_western">양식</string>
     <string name="category_snack">분식</string>
+    <string name="category_cafe_dessert">카페/디저트</string>
     <string name="category_southeast_asian">동남아</string>
 
     <!-- History Screen -->

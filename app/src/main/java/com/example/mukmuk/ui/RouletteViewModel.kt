@@ -4,8 +4,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.mukmuk.data.local.FavoriteDao
 import com.example.mukmuk.data.local.VisitRecordDao
 import com.example.mukmuk.data.location.LocationService
 import com.example.mukmuk.data.model.Category
@@ -28,7 +30,8 @@ class RouletteViewModel(
     val settingsRepository: SettingsRepository,
     private val locationService: LocationService,
     private val remoteRestaurantRepository: RemoteRestaurantRepository,
-    private val visitRecordDao: VisitRecordDao
+    private val visitRecordDao: VisitRecordDao,
+    private val favoriteDao: FavoriteDao
 ) : ViewModel() {
 
     val hapticEnabled = settingsRepository.hapticEnabled
@@ -39,6 +42,18 @@ class RouletteViewModel(
 
     val darkTheme = settingsRepository.darkTheme
         .stateIn(viewModelScope, SharingStarted.Eagerly, true)
+
+    val favorites = favoriteDao.getAllFavorites()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    var favoriteRouletteMode by mutableStateOf(false)
+        private set
+
+    var selectedFavoriteNames by mutableStateOf<Set<String>>(emptySet())
+        private set
+
+    var selectedFavoriteResult by mutableStateOf<String?>(null)
+        private set
 
     var selectedCategories by mutableStateOf(emptySet<Category>())
         private set
@@ -68,11 +83,44 @@ class RouletteViewModel(
     val filteredMenus: List<Menu>
         get() = MenuRepository.getFilteredMenus(selectedCategories)
 
+    val favoriteMenusForWheel: List<Menu>
+        get() {
+            val colors = listOf(
+                Color(0xFFE74C3C), Color(0xFF3498DB), Color(0xFF2ECC71), Color(0xFFF39C12),
+                Color(0xFF9B59B6), Color(0xFF1ABC9C), Color(0xFFE67E22), Color(0xFF34495E)
+            )
+            return selectedFavoriteNames.toList().mapIndexed { index, name ->
+                Menu(name, "⭐", Category.KOREAN, colors[index % colors.size])
+            }
+        }
+
     var restaurants by mutableStateOf<List<Restaurant>>(emptyList())
         private set
 
     var isLoadingRestaurants by mutableStateOf(false)
         private set
+
+    fun toggleFavoriteRouletteMode() {
+        // Reset result state when switching modes to prevent stale results
+        resetToWheel()
+        favoriteRouletteMode = !favoriteRouletteMode
+    }
+
+    fun toggleFavoriteForRoulette(name: String) {
+        selectedFavoriteNames = if (name in selectedFavoriteNames) {
+            selectedFavoriteNames - name
+        } else {
+            selectedFavoriteNames + name
+        }
+    }
+
+    fun selectAllFavoritesForRoulette() {
+        selectedFavoriteNames = favorites.value.map { it.restaurantName }.toSet()
+    }
+
+    fun clearFavoriteSelection() {
+        selectedFavoriteNames = emptySet()
+    }
 
     fun toggleCategory(category: Category) {
         selectedCategories = if (category in selectedCategories) {
@@ -98,14 +146,26 @@ class RouletteViewModel(
     }
 
     fun onSpinComplete(finalAngle: Float, hasLocationPermission: Boolean = true) {
-        val menus = filteredMenus
-        if (menus.isEmpty()) return
-        val normalized = ((finalAngle % 360f) + 360f) % 360f
-        val arc = 360f / menus.size
-        val index = ((360f - normalized + arc / 2f) % 360f / arc).toInt() % menus.size
-        selectedMenu = menus[index]
-        isSpinning = false
-        loadNearbyRestaurants(menus[index].name, hasLocationPermission)
+        if (favoriteRouletteMode) {
+            val menus = favoriteMenusForWheel
+            if (menus.isEmpty()) return
+            val normalized = ((finalAngle % 360f) + 360f) % 360f
+            val arc = 360f / menus.size
+            val index = ((360f - normalized + arc / 2f) % 360f / arc).toInt() % menus.size
+            selectedMenu = menus[index]
+            selectedFavoriteResult = menus[index].name
+            isSpinning = false
+            loadNearbyRestaurants(menus[index].name, hasLocationPermission)
+        } else {
+            val menus = filteredMenus
+            if (menus.isEmpty()) return
+            val normalized = ((finalAngle % 360f) + 360f) % 360f
+            val arc = 360f / menus.size
+            val index = ((360f - normalized + arc / 2f) % 360f / arc).toInt() % menus.size
+            selectedMenu = menus[index]
+            isSpinning = false
+            loadNearbyRestaurants(menus[index].name, hasLocationPermission)
+        }
     }
 
     fun showResultScreen() {
@@ -116,6 +176,7 @@ class RouletteViewModel(
         showResult = false
         selectedMenu = null
         restaurants = emptyList()
+        selectedFavoriteResult = null
     }
 
     fun selectRestaurant(restaurant: Restaurant) {
@@ -221,6 +282,10 @@ class RouletteViewModel(
                 restaurants = remoteRestaurantRepository.searchNearby(
                     menuName, location.latitude, location.longitude
                 )
+            } catch (e: java.net.UnknownHostException) {
+                snackbarMessage = "\uC778\uD130\uB137 \uC5F0\uACB0\uC744 \uD655\uC778\uD574\uC8FC\uC138\uC694"
+                showConfirmSnackbar = true
+                restaurants = RestaurantRepository.getRestaurants(menuName)
             } catch (_: Exception) {
                 restaurants = RestaurantRepository.getRestaurants(menuName)
             } finally {

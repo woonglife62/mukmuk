@@ -54,12 +54,12 @@ fun RouletteWheel(
         modifier = modifier.size(280.dp),
         contentAlignment = Alignment.TopCenter
     ) {
-        // Pointer triangle at top
+        // Pointer triangle at top (pointing down into wheel)
         Canvas(modifier = Modifier.size(24.dp, 28.dp)) {
             val path = Path().apply {
-                moveTo(size.width / 2f, 0f)
-                lineTo(0f, size.height)
-                lineTo(size.width, size.height)
+                moveTo(0f, 0f)
+                lineTo(size.width, 0f)
+                lineTo(size.width / 2f, size.height)
                 close()
             }
             drawPath(path, GoldAccent)
@@ -69,7 +69,7 @@ fun RouletteWheel(
         Canvas(
             modifier = Modifier
                 .size(280.dp)
-                .semantics { contentDescription = "\uC74C\uC2DD \uB8F0\uB81B \uD718. \uC911\uC559 GO \uBC84\uD2BC\uC744 \uD0ED\uD558\uC5EC \uD68C\uC804" }
+                .semantics { contentDescription = "\uC74C\uC2DD \uB8F0\uB81B \uD718. \uC911\uC559 \uB3CC\uB824! \uBC84\uD2BC\uC744 \uD0ED\uD558\uC5EC \uD68C\uC804" }
                 .pointerInput(isSpinning) {
                     if (!isSpinning) {
                         detectTapGestures { offset ->
@@ -154,16 +154,16 @@ fun RouletteWheel(
                 center = center,
                 style = androidx.compose.ui.graphics.drawscope.Stroke(width = 3.dp.toPx())
             )
-            // "GO" text
+            // Center text
             drawContext.canvas.nativeCanvas.apply {
                 val paint = android.graphics.Paint().apply {
                     color = android.graphics.Color.parseColor("#FFB800")
-                    textSize = 14.dp.toPx()
+                    textSize = 12.dp.toPx()
                     textAlign = android.graphics.Paint.Align.CENTER
                     isFakeBoldText = true
                     isAntiAlias = true
                 }
-                drawText("GO", center.x, center.y + 5.dp.toPx(), paint)
+                drawText("\uB3CC\uB824!", center.x, center.y + 5.dp.toPx(), paint)
             }
         }
     }

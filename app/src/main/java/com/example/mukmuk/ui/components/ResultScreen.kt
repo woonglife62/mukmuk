@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -228,40 +229,43 @@ private fun RestaurantCard(
             .border(1.dp, extColors.cardBorder, RoundedCornerShape(16.dp))
             .clickable { onClick() }
     ) {
-        Column(modifier = Modifier.padding(18.dp)) {
+        Column(modifier = Modifier.padding(16.dp)) {
             Row(
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.Top
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = restaurant.name,
                         color = colorScheme.onSurface,
-                        fontSize = 15.sp,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     if (restaurant.rating > 0f) {
-                        StarRating(rating = restaurant.rating)
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "\uB9AC\uBDF0 ${restaurant.reviews}\uAC1C",
-                            color = extColors.textHint,
-                            fontSize = 11.sp
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            StarRating(rating = restaurant.rating)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "\uB9AC\uBDF0 ${restaurant.reviews}\uAC1C",
+                                color = extColors.textHint,
+                                fontSize = 11.sp
+                            )
+                        }
                     } else if (restaurant.placeUrl.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "\uD83D\uDCCD \uCE74\uCE74\uC624\uB9F5\uC5D0\uC11C \uBCF4\uAE30",
                             color = colorScheme.primary,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
+                            fontSize = 11.sp,
                             modifier = Modifier.clickable {
                                 context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(restaurant.placeUrl)))
                             }
                         )
                     }
                     if (restaurant.address.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(2.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "\uD83D\uDCCD ${restaurant.address}",
                             color = extColors.textTertiary,
@@ -270,7 +274,7 @@ private fun RestaurantCard(
                         )
                     }
                     if (restaurant.phone.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(2.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "\uD83D\uDCDE ${restaurant.phone}",
                             color = extColors.textTertiary,
@@ -278,14 +282,34 @@ private fun RestaurantCard(
                         )
                     }
                 }
-                if (restaurant.distance != "0m" && restaurant.distance.isNotEmpty()) {
-                    Text(
-                        text = restaurant.distance,
-                        color = colorScheme.primary,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(start = 8.dp)
-                    )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Column(horizontalAlignment = Alignment.End) {
+                        if (restaurant.distance != "0m" && restaurant.distance.isNotEmpty()) {
+                            Text(
+                                text = restaurant.distance,
+                                color = colorScheme.primary,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        if (restaurant.category != null) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = colorScheme.primary.copy(alpha = 0.1f)
+                            ) {
+                                Text(
+                                    text = restaurant.category.displayName,
+                                    color = colorScheme.primary,
+                                    fontSize = 11.sp,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                    }
                 }
             }
 

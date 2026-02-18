@@ -71,7 +71,7 @@ class RestaurantViewModel(
     }
 
     val favorites: StateFlow<List<FavoriteRestaurant>> = favoriteDao.getAllFavorites()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     init {
         @OptIn(FlowPreview::class)
@@ -150,8 +150,14 @@ class RestaurantViewModel(
                     query, location.latitude, location.longitude, radius
                 )
                 apiSearchState = RestaurantUiState.Success(results)
+            } catch (e: java.net.UnknownHostException) {
+                apiSearchState = RestaurantUiState.Error("\uC778\uD130\uB137 \uC5F0\uACB0\uC744 \uD655\uC778\uD574\uC8FC\uC138\uC694")
+            } catch (e: java.net.SocketTimeoutException) {
+                apiSearchState = RestaurantUiState.Error("\uC11C\uBC84 \uC751\uB2F5\uC774 \uB290\uB9BD\uB2C8\uB2E4. \uB2E4\uC2DC \uC2DC\uB3C4\uD574\uC8FC\uC138\uC694")
+            } catch (e: SecurityException) {
+                apiSearchState = RestaurantUiState.Error("\uC704\uCE58 \uAD8C\uD55C\uC774 \uD544\uC694\uD569\uB2C8\uB2E4")
             } catch (_: Exception) {
-                apiSearchState = RestaurantUiState.Error("검색에 실패했습니다")
+                apiSearchState = RestaurantUiState.Error("\uAC80\uC0C9\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4. \uB2E4\uC2DC \uC2DC\uB3C4\uD574\uC8FC\uC138\uC694")
             }
         }
     }

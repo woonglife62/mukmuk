@@ -207,7 +207,8 @@ fun RestaurantDetailScreen(
         Spacer(modifier = Modifier.height(12.dp))
 
         // Embedded map - show for all restaurants with non-default coordinates
-        val isHardcodedLocation = restaurant.latitude == 37.4979 && restaurant.longitude == 127.0276
+        val isHardcodedLocation = kotlin.math.abs(restaurant.latitude - 37.4979) < 0.0001 &&
+                                  kotlin.math.abs(restaurant.longitude - 127.0276) < 0.0001
         if (!isHardcodedLocation) {
             val lifecycleOwner = LocalLifecycleOwner.current
             val webViewState = remember { mutableStateOf<WebView?>(null) }
@@ -251,9 +252,19 @@ fun RestaurantDetailScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                     val lat = restaurant.latitude
                     val lng = restaurant.longitude
-                    val mapUrl = "https://www.openstreetmap.org/export/embed.html?" +
-                            "bbox=${lng - 0.005},${lat - 0.003},${lng + 0.005},${lat + 0.003}" +
-                            "&layer=mapnik&marker=${lat},${lng}"
+                    val mapHtml = buildString {
+                        append("<!DOCTYPE html><html><head>")
+                        append("<meta name='viewport' content='width=device-width,initial-scale=1.0'>")
+                        append("<link rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'/>")
+                        append("<script src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'></script>")
+                        append("<style>html,body,#map{height:100%;margin:0;padding:0;}</style>")
+                        append("</head><body><div id='map'></div><script>")
+                        append("var map=L.map('map').setView([${lat},${lng}],16);")
+                        append("L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',")
+                        append("{attribution:'&copy; OSM'}).addTo(map);")
+                        append("L.marker([${lat},${lng}]).addTo(map);")
+                        append("</script></body></html>")
+                    }
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -266,7 +277,7 @@ fun RestaurantDetailScreen(
                                     webViewClient = object : WebViewClient() {
                                         override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                                             val url = request?.url?.toString() ?: return true
-                                            val allowedHosts = listOf("openstreetmap.org", "www.openstreetmap.org", "tile.openstreetmap.org")
+                                            val allowedHosts = listOf("openstreetmap.org", "www.openstreetmap.org", "tile.openstreetmap.org", "unpkg.com")
                                             return !allowedHosts.any { url.contains(it) }
                                         }
                                         override fun onPageFinished(view: WebView?, url: String?) {
@@ -274,7 +285,8 @@ fun RestaurantDetailScreen(
                                         }
                                     }
                                     settings.javaScriptEnabled = true
-                                    loadUrl(mapUrl)
+                                    settings.domStorageEnabled = true
+                                    loadDataWithBaseURL(null, mapHtml, "text/html", "UTF-8", null)
                                     webViewState.value = this
                                 }
                             },
@@ -470,7 +482,7 @@ fun RestaurantDetailScreen(
             Spacer(modifier = Modifier.height(12.dp))
         }
 
-        Spacer(modifier = Modifier.height(80.dp))
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 

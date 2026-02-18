@@ -13,10 +13,14 @@ import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -24,9 +28,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -79,6 +86,7 @@ fun RouletteScreen(
     val hapticFeedback = LocalHapticFeedback.current
     val hapticEnabled by viewModel.hapticEnabled.collectAsState()
     val soundEnabled by viewModel.soundEnabled.collectAsState()
+    val favorites by viewModel.favorites.collectAsState()
     var showConfetti by remember { mutableStateOf(false) }
 
     // Location permission
@@ -142,16 +150,19 @@ fun RouletteScreen(
     }
 
     val spinWheel = {
-        if (!locationPermissionGranted) {
+        if (!locationPermissionGranted && !viewModel.favoriteRouletteMode) {
             showLocationDialog = true
         }
-        if (!viewModel.isSpinning && viewModel.filteredMenus.isNotEmpty()) {
+        val activeMenus = if (viewModel.favoriteRouletteMode) viewModel.favoriteMenusForWheel else viewModel.filteredMenus
+        if (!viewModel.isSpinning && viewModel.selectedMenu == null && activeMenus.isNotEmpty()) {
             viewModel.updateSpinning(true)
             if (hapticEnabled) hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
             scope.launch {
                 val totalRotation = 2160f + (Math.random() * 1440f).toFloat()
                 val target = viewModel.rotation + totalRotation
                 animatable.snapTo(viewModel.rotation)
+                var lastSegment = -1
+                val segmentCount = activeMenus.size
                 animatable.animateTo(
                     targetValue = target,
                     animationSpec = tween(
@@ -160,10 +171,28 @@ fun RouletteScreen(
                     )
                 ) {
                     viewModel.updateRotation(value)
+                    if (segmentCount > 0) {
+                        val segmentAngle = 360f / segmentCount
+                        val normalized = ((value % 360f) + 360f) % 360f
+                        val currentSegment = (normalized / segmentAngle).toInt() % segmentCount
+                        if (currentSegment != lastSegment && lastSegment != -1) {
+                            if (soundEnabled) toneGenerator?.startTone(ToneGenerator.TONE_PROP_BEEP2, 15)
+                            if (hapticEnabled) hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                        }
+                        lastSegment = currentSegment
+                    }
                 }
                 viewModel.onSpinComplete(target, locationPermissionGranted)
                 if (hapticEnabled) hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                if (soundEnabled) toneGenerator?.startTone(ToneGenerator.TONE_PROP_ACK, 150)
+                if (soundEnabled) {
+                    scope.launch {
+                        toneGenerator?.startTone(ToneGenerator.TONE_PROP_BEEP, 100)
+                        delay(120)
+                        toneGenerator?.startTone(ToneGenerator.TONE_PROP_BEEP, 100)
+                        delay(120)
+                        toneGenerator?.startTone(ToneGenerator.TONE_PROP_ACK, 200)
+                    }
+                }
                 showConfetti = true
                 delay(300)
                 viewModel.showResultScreen()
@@ -202,19 +231,161 @@ fun RouletteScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Category chips
-        CategoryChips(
-            categories = viewModel.categories,
-            selectedCategories = viewModel.selectedCategories,
-            onToggle = { if (!viewModel.isSpinning) viewModel.toggleCategory(it) },
-            onClearAll = { if (!viewModel.isSpinning) viewModel.clearAllCategories() },
-            modifier = Modifier.alpha(if (viewModel.isSpinning) 0.5f else 1f)
-        )
+        // Mode toggle tabs
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            listOf("\uD83C\uDFB0 \uBA54\uB274 \uB8F0\uB81B" to false, "\u2B50 \uC990\uACA8\uCC3E\uAE30 \uB8F0\uB81B" to true).forEach { (label, isFavMode) ->
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = if (viewModel.favoriteRouletteMode == isFavMode)
+                        colorScheme.primary.copy(alpha = 0.2f)
+                    else
+                        extColors.cardBackground,
+                    modifier = Modifier
+                        .padding(horizontal = 4.dp)
+                        .clickable { if (viewModel.favoriteRouletteMode != isFavMode) viewModel.toggleFavoriteRouletteMode() }
+                ) {
+                    Text(
+                        text = label,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        fontSize = 14.sp,
+                        fontWeight = if (viewModel.favoriteRouletteMode == isFavMode) FontWeight.Bold else FontWeight.Normal,
+                        color = if (viewModel.favoriteRouletteMode == isFavMode) colorScheme.primary else extColors.textTertiary
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        if (!viewModel.favoriteRouletteMode) {
+            // Category chips (menu roulette mode)
+            CategoryChips(
+                categories = viewModel.categories,
+                selectedCategories = viewModel.selectedCategories,
+                onToggle = { if (!viewModel.isSpinning) viewModel.toggleCategory(it) },
+                onClearAll = { if (!viewModel.isSpinning) viewModel.clearAllCategories() },
+                modifier = Modifier.alpha(if (viewModel.isSpinning) 0.5f else 1f)
+            )
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
 
         if (!viewModel.showResult) {
-            if (viewModel.filteredMenus.isEmpty()) {
+            if (viewModel.favoriteRouletteMode) {
+                // Favorites roulette mode UI
+                if (favorites.isEmpty()) {
+                    Spacer(modifier = Modifier.height(40.dp))
+                    Text(text = "\u2B50", fontSize = 48.sp)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "\uC990\uACA8\uCC3E\uAE30\uAC00 \uC5C6\uC5B4\uC694",
+                        color = colorScheme.onSurface,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "\uC544\uB798 \uB9DB\uC9D1 \uD0ED\uC5D0\uC11C \uC2DD\uB2F9\uC744 \uC990\uACA8\uCC3E\uAE30\uC5D0 \uCD94\uAC00\uD574\uBCF4\uC138\uC694!",
+                        color = extColors.textTertiary,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Normal,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 24.dp)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "\u2B07\uFE0F \uB9DB\uC9D1 \uD0ED\uC5D0\uC11C \u2764\uFE0F \uBC84\uD2BC\uC744 \uB20C\uB7EC\uBCF4\uC138\uC694",
+                        color = extColors.textHint,
+                        fontSize = 12.sp,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                } else {
+                    // Select all / clear buttons
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = { viewModel.selectAllFavoritesForRoulette() },
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(text = "\uC804\uCCB4 \uC120\uD0DD", fontSize = 13.sp)
+                        }
+                        OutlinedButton(
+                            onClick = { viewModel.clearFavoriteSelection() },
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(text = "\uC120\uD0DD \uD574\uC81C", fontSize = 13.sp)
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    // Favorites list with checkboxes
+                    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                        favorites.forEach { fav ->
+                            val checked = fav.restaurantName in viewModel.selectedFavoriteNames
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { viewModel.toggleFavoriteForRoulette(fav.restaurantName) }
+                                    .padding(vertical = 4.dp)
+                            ) {
+                                Checkbox(
+                                    checked = checked,
+                                    onCheckedChange = { viewModel.toggleFavoriteForRoulette(fav.restaurantName) }
+                                )
+                                Text(
+                                    text = fav.restaurantName,
+                                    fontSize = 15.sp,
+                                    modifier = Modifier.padding(start = 8.dp)
+                                )
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    // Roulette wheel for favorites
+                    if (viewModel.favoriteMenusForWheel.isNotEmpty()) {
+                        RouletteWheel(
+                            menus = viewModel.favoriteMenusForWheel,
+                            rotation = viewModel.rotation,
+                            isSpinning = viewModel.isSpinning,
+                            onSpin = { spinWheel() }
+                        )
+                        Spacer(modifier = Modifier.height(20.dp))
+                    }
+                    Button(
+                        onClick = { spinWheel() },
+                        enabled = !viewModel.isSpinning && viewModel.favoriteMenusForWheel.isNotEmpty(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = colorScheme.primary,
+                            contentColor = colorScheme.background,
+                            disabledContainerColor = colorScheme.primary.copy(alpha = 0.3f),
+                            disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                        ),
+                        modifier = Modifier.padding(horizontal = 48.dp)
+                    ) {
+                        Text(
+                            text = if (viewModel.isSpinning) "\uD83C\uDFB0 \uB3CC\uB9AC\uB294 \uC911..." else "\uD83C\uDFAF \uB3CC\uB824!",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(vertical = 6.dp, horizontal = 16.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+            } else if (viewModel.filteredMenus.isEmpty()) {
                 // Empty state
                 Spacer(modifier = Modifier.height(40.dp))
                 Text(
@@ -242,7 +413,7 @@ fun RouletteScreen(
                         fontWeight = FontWeight.Bold
                     )
                 }
-                Spacer(modifier = Modifier.height(80.dp))
+                Spacer(modifier = Modifier.height(16.dp))
             } else {
                 // Roulette wheel
                 RouletteWheel(
@@ -280,7 +451,7 @@ fun RouletteScreen(
                 // Menu grid
                 MenuGrid(menus = viewModel.filteredMenus)
 
-                Spacer(modifier = Modifier.height(80.dp)) // space for bottom nav
+                Spacer(modifier = Modifier.height(16.dp)) // space for bottom nav
             }
         } else {
             // Result screen
@@ -311,14 +482,14 @@ fun RouletteScreen(
                     }
                 )
             }
-            Spacer(modifier = Modifier.height(80.dp))
+            Spacer(modifier = Modifier.height(16.dp))
         }
         }
         SnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 80.dp)
+                .padding(bottom = 16.dp)
         )
 
         // Confetti overlay

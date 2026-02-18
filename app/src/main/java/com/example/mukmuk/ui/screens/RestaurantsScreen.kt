@@ -236,10 +236,12 @@ fun RestaurantsScreen(
                 Category.entries.forEach { category ->
                     val emoji = when (category) {
                         Category.KOREAN -> "\uD83C\uDDF0\uD83C\uDDF7"
+                        Category.CHICKEN -> "\uD83C\uDF57"
                         Category.JAPANESE -> "\uD83C\uDDEF\uD83C\uDDF5"
                         Category.CHINESE -> "\uD83C\uDDE8\uD83C\uDDF3"
                         Category.WESTERN -> "\uD83C\uDF55"
                         Category.SNACK -> "\uD83C\uDF62"
+                        Category.CAFE_DESSERT -> "\u2615"
                         Category.SOUTHEAST_ASIAN -> "\uD83C\uDF5C"
                     }
                     CategoryFilterChip(
@@ -320,7 +322,7 @@ fun RestaurantsScreen(
             hostState = snackbarHostState,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 80.dp)
+                .padding(bottom = 16.dp)
         )
 
         // Floating map button
@@ -328,7 +330,7 @@ fun RestaurantsScreen(
             Surface(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(end = 16.dp, bottom = 90.dp)
+                    .padding(end = 16.dp, bottom = 16.dp)
                     .clickable { onMapClick() },
                 shape = RoundedCornerShape(24.dp),
                 color = MaterialTheme.colorScheme.primary,
@@ -368,7 +370,7 @@ private fun RestaurantList(
                 onCardClick = { onRestaurantClick(restaurant.name) }
             )
         }
-        item { Spacer(modifier = Modifier.height(80.dp)) }
+        item { Spacer(modifier = Modifier.height(60.dp)) }
     }
 }
 

@@ -5,6 +5,19 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
+// Read .env file for environment variables
+val envFile = rootProject.file(".env")
+val envProps = if (envFile.exists()) {
+    envFile.readLines()
+        .filter { it.isNotBlank() && !it.startsWith("#") && it.contains("=") }
+        .associate { line ->
+            val (key, value) = line.split("=", limit = 2)
+            key.trim() to value.trim()
+        }
+} else {
+    emptyMap()
+}
+
 android {
     namespace = "com.example.mukmuk"
     compileSdk = 35
@@ -14,9 +27,13 @@ android {
         minSdk = 24
         targetSdk = 35
         versionCode = 1
-        versionName = "1.0"
+        versionName = "1.2"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        buildConfigField("String", "KAKAO_REST_API_KEY", "\"${project.findProperty("KAKAO_REST_API_KEY") ?: ""}\"")
+        buildConfigField(
+            "String",
+            "KAKAO_REST_API_KEY",
+            "\"${envProps["KAKAO_REST_API_KEY"] ?: project.findProperty("KAKAO_REST_API_KEY") ?: ""}\""
+        )
     }
 
     buildTypes {

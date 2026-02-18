@@ -26,6 +26,9 @@ hs_err_pid*
 replay_pid*
 .kotlin/
 
+# Environment variables
+.env
+
 # OMC / Claude local state
 .omc/
 .claude/

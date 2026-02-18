@@ -1,5 +1,9 @@
 package com.example.mukmuk.ui.screens
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -22,53 +26,93 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import com.example.mukmuk.data.model.Category
 import com.example.mukmuk.data.model.Restaurant
 import com.example.mukmuk.ui.RestaurantUiState
 import com.example.mukmuk.ui.RestaurantViewModel
+import com.example.mukmuk.ui.components.LocationPermissionDialog
 import com.example.mukmuk.ui.components.StarRating
-import com.example.mukmuk.ui.theme.CardBackground
-import com.example.mukmuk.ui.theme.CardBorder
-import com.example.mukmuk.ui.theme.ChipBorder
-import com.example.mukmuk.ui.theme.DarkBackground
-import com.example.mukmuk.ui.theme.DarkSurface
-import com.example.mukmuk.ui.theme.DarkSurfaceVariant
-import com.example.mukmuk.ui.theme.GoldAccent
-import com.example.mukmuk.ui.theme.TextHint
-import com.example.mukmuk.ui.theme.TextPrimary
-import com.example.mukmuk.ui.theme.TextSecondary
-import com.example.mukmuk.ui.theme.TextTertiary
+import com.example.mukmuk.ui.theme.mukmukColors
 
 @Composable
 fun RestaurantsScreen(
     viewModel: RestaurantViewModel,
     onRestaurantClick: (String) -> Unit
 ) {
+    val colorScheme = MaterialTheme.colorScheme
+    val extColors = MaterialTheme.mukmukColors
+    val context = LocalContext.current
     val favorites by viewModel.favorites.collectAsState()
     val restaurants = viewModel.filteredRestaurants
     val apiState = viewModel.apiSearchState
+
+    var showLocationDialog by remember { mutableStateOf(false) }
+    var locationPermissionGranted by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
+                    PackageManager.PERMISSION_GRANTED ||
+                    ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) ==
+                    PackageManager.PERMISSION_GRANTED
+        )
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        locationPermissionGranted =
+            permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                    permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+    }
+
+    LaunchedEffect(Unit) {
+        if (!locationPermissionGranted) {
+            showLocationDialog = true
+        }
+    }
+
+    if (showLocationDialog) {
+        LocationPermissionDialog(
+            onConfirm = {
+                showLocationDialog = false
+                permissionLauncher.launch(
+                    arrayOf(
+                        Manifest.permission.ACCESS_FINE_LOCATION,
+                        Manifest.permission.ACCESS_COARSE_LOCATION
+                    )
+                )
+            },
+            onDismiss = { showLocationDialog = false }
+        )
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(
                 Brush.linearGradient(
-                    colors = listOf(DarkBackground, DarkSurface, DarkSurfaceVariant)
+                    colors = listOf(colorScheme.background, colorScheme.surface, colorScheme.surfaceVariant)
                 )
             )
     ) {
@@ -76,14 +120,21 @@ fun RestaurantsScreen(
 
         Text(
             text = "근처 맛집",
-            color = GoldAccent,
+            color = colorScheme.primary,
             fontSize = 22.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(horizontal = 20.dp)
         )
         Text(
-            text = "현재 위치 기준",
-            color = TextTertiary,
+            text = when (apiState) {
+                is RestaurantUiState.Success -> "현재 위치 기준"
+                is RestaurantUiState.Error -> "검색 실패 - 추천 맛집 표시 중"
+                else -> "추천 맛집"
+            },
+            color = when (apiState) {
+                is RestaurantUiState.Error -> extColors.error
+                else -> extColors.textTertiary
+            },
             fontSize = 12.sp,
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
         )
@@ -96,18 +147,18 @@ fun RestaurantsScreen(
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(DarkSurface)
-                .border(1.dp, ChipBorder, RoundedCornerShape(12.dp))
+                .background(colorScheme.surface)
+                .border(1.dp, extColors.chipBorder, RoundedCornerShape(12.dp))
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
             if (viewModel.searchQuery.isEmpty()) {
-                Text(text = "맛집 검색...", color = TextHint, fontSize = 14.sp)
+                Text(text = "맛집 검색...", color = extColors.textHint, fontSize = 14.sp)
             }
             BasicTextField(
                 value = viewModel.searchQuery,
                 onValueChange = { viewModel.updateSearchQuery(it) },
-                textStyle = TextStyle(color = TextPrimary, fontSize = 14.sp),
-                cursorBrush = SolidColor(GoldAccent),
+                textStyle = TextStyle(color = colorScheme.onSurface, fontSize = 14.sp),
+                cursorBrush = SolidColor(colorScheme.primary),
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -170,11 +221,11 @@ fun RestaurantsScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator(color = GoldAccent)
+                        CircularProgressIndicator(color = colorScheme.primary)
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
                             text = "맛집 검색 중...",
-                            color = TextTertiary,
+                            color = extColors.textTertiary,
                             fontSize = 14.sp
                         )
                     }
@@ -183,14 +234,14 @@ fun RestaurantsScreen(
             is RestaurantUiState.Error -> {
                 Text(
                     text = apiState.message,
-                    color = Color(0xFFFF6B6B),
+                    color = extColors.error,
                     fontSize = 13.sp,
                     modifier = Modifier.padding(horizontal = 20.dp)
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = "${restaurants.size}개의 맛집",
-                    color = TextSecondary,
+                    color = extColors.textSecondary,
                     fontSize = 13.sp,
                     modifier = Modifier.padding(horizontal = 20.dp)
                 )
@@ -200,7 +251,7 @@ fun RestaurantsScreen(
             else -> {
                 Text(
                     text = "${restaurants.size}개의 맛집",
-                    color = TextSecondary,
+                    color = extColors.textSecondary,
                     fontSize = 13.sp,
                     modifier = Modifier.padding(horizontal = 20.dp)
                 )
@@ -244,13 +295,15 @@ private fun CategoryFilterChip(
     selected: Boolean,
     onClick: () -> Unit
 ) {
+    val colorScheme = MaterialTheme.colorScheme
+    val extColors = MaterialTheme.mukmukColors
     Surface(
         shape = RoundedCornerShape(20.dp),
-        color = if (selected) GoldAccent.copy(alpha = 0.2f) else CardBackground,
+        color = if (selected) colorScheme.primary.copy(alpha = 0.2f) else extColors.cardBackground,
         modifier = Modifier
             .border(
                 1.dp,
-                if (selected) GoldAccent else ChipBorder,
+                if (selected) colorScheme.primary else extColors.chipBorder,
                 RoundedCornerShape(20.dp)
             )
             .clickable(onClick = onClick)
@@ -263,7 +316,7 @@ private fun CategoryFilterChip(
             Spacer(modifier = Modifier.width(4.dp))
             Text(
                 text = label,
-                color = if (selected) GoldAccent else TextSecondary,
+                color = if (selected) colorScheme.primary else extColors.textSecondary,
                 fontSize = 13.sp,
                 fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
             )
@@ -278,12 +331,14 @@ private fun RestaurantDetailCard(
     onFavoriteClick: () -> Unit,
     onCardClick: () -> Unit
 ) {
+    val colorScheme = MaterialTheme.colorScheme
+    val extColors = MaterialTheme.mukmukColors
     Surface(
         shape = RoundedCornerShape(16.dp),
-        color = CardBackground,
+        color = extColors.cardBackground,
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, CardBorder, RoundedCornerShape(16.dp))
+            .border(1.dp, extColors.cardBorder, RoundedCornerShape(16.dp))
             .clickable(onClick = onCardClick)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -295,7 +350,7 @@ private fun RestaurantDetailCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = restaurant.name,
-                        color = Color.White,
+                        color = colorScheme.onSurface,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -306,7 +361,7 @@ private fun RestaurantDetailCard(
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = "\uB9AC\uBDF0 ${restaurant.reviews}\uAC1C",
-                                color = TextHint,
+                                color = extColors.textHint,
                                 fontSize = 11.sp
                             )
                         }
@@ -315,7 +370,7 @@ private fun RestaurantDetailCard(
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "\uD83D\uDCCD ${restaurant.address}",
-                            color = TextTertiary,
+                            color = extColors.textTertiary,
                             fontSize = 11.sp,
                             maxLines = 1
                         )
@@ -328,7 +383,7 @@ private fun RestaurantDetailCard(
                     Column(horizontalAlignment = Alignment.End) {
                         Text(
                             text = restaurant.distance,
-                            color = GoldAccent,
+                            color = colorScheme.primary,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -336,11 +391,11 @@ private fun RestaurantDetailCard(
                             Spacer(modifier = Modifier.height(4.dp))
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
-                                color = GoldAccent.copy(alpha = 0.1f)
+                                color = colorScheme.primary.copy(alpha = 0.1f)
                             ) {
                                 Text(
                                     text = restaurant.category.displayName,
-                                    color = GoldAccent,
+                                    color = colorScheme.primary,
                                     fontSize = 11.sp,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                                 )
@@ -350,7 +405,7 @@ private fun RestaurantDetailCard(
                     // Favorite heart button
                     Surface(
                         shape = CircleShape,
-                        color = if (isFavorite) GoldAccent.copy(alpha = 0.15f) else Color.Transparent,
+                        color = if (isFavorite) colorScheme.primary.copy(alpha = 0.15f) else Color.Transparent,
                         modifier = Modifier
                             .size(36.dp)
                             .clickable(onClick = onFavoriteClick)
@@ -358,7 +413,7 @@ private fun RestaurantDetailCard(
                         Box(contentAlignment = Alignment.Center) {
                             Text(
                                 text = if (isFavorite) "\u2665" else "\u2661",
-                                color = if (isFavorite) GoldAccent else TextSecondary,
+                                color = if (isFavorite) colorScheme.primary else extColors.textSecondary,
                                 fontSize = 18.sp
                             )
                         }
@@ -375,21 +430,21 @@ private fun RestaurantDetailCard(
                     if (restaurant.priceRange.isNotEmpty()) {
                         Text(
                             text = "\uD83D\uDCB0 ${restaurant.priceRange}",
-                            color = TextTertiary,
+                            color = extColors.textTertiary,
                             fontSize = 12.sp
                         )
                     }
                     if (restaurant.hours.isNotEmpty()) {
                         Text(
                             text = "\uD83D\uDD50 ${restaurant.hours}",
-                            color = TextTertiary,
+                            color = extColors.textTertiary,
                             fontSize = 12.sp
                         )
                     }
                     if (restaurant.phone.isNotEmpty()) {
                         Text(
                             text = "\uD83D\uDCDE ${restaurant.phone}",
-                            color = TextTertiary,
+                            color = extColors.textTertiary,
                             fontSize = 12.sp
                         )
                     }

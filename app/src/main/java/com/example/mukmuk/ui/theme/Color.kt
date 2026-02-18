@@ -38,4 +38,27 @@ val DarkMukmukColors = MukmukExtendedColors(
     error = Color(0xFFFF6B6B)
 )
 
+// Light theme colors
+val LightBackground = Color(0xFFF5F5F5)
+val LightSurface = Color(0xFFFFFFFF)
+val LightSurfaceVariant = Color(0xFFE8E8E8)
+val LightTextPrimary = Color(0xFF1A1A1A)
+val LightTextSecondary = Color(0xFF1A1A1A).copy(alpha = 0.6f)
+val LightTextTertiary = Color(0xFF1A1A1A).copy(alpha = 0.4f)
+val LightTextHint = Color(0xFF1A1A1A).copy(alpha = 0.3f)
+val LightCardBackground = Color(0xFF000000).copy(alpha = 0.04f)
+val LightCardBorder = Color(0xFF000000).copy(alpha = 0.08f)
+val LightChipBorder = Color(0xFF000000).copy(alpha = 0.12f)
+
+val LightMukmukColors = MukmukExtendedColors(
+    textSecondary = LightTextSecondary,
+    textTertiary = LightTextTertiary,
+    textHint = LightTextHint,
+    cardBackground = LightCardBackground,
+    cardBorder = LightCardBorder,
+    chipBorder = LightChipBorder,
+    goldAccentDark = GoldAccentDark,
+    error = Color(0xFFFF6B6B)
+)
+
 val LocalMukmukColors = staticCompositionLocalOf { DarkMukmukColors }

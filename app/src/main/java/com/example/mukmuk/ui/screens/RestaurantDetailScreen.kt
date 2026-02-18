@@ -2,6 +2,7 @@ package com.example.mukmuk.ui.screens
 
 import android.content.Intent
 import android.net.Uri
+import android.webkit.WebView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -19,6 +20,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,26 +28,19 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import com.example.mukmuk.data.repository.RestaurantRepository
 import com.example.mukmuk.ui.RestaurantUiState
 import com.example.mukmuk.ui.RestaurantViewModel
 import com.example.mukmuk.ui.components.StarRating
-import com.example.mukmuk.ui.theme.CardBackground
-import com.example.mukmuk.ui.theme.CardBorder
-import com.example.mukmuk.ui.theme.DarkBackground
-import com.example.mukmuk.ui.theme.DarkSurface
-import com.example.mukmuk.ui.theme.DarkSurfaceVariant
-import com.example.mukmuk.ui.theme.GoldAccent
-import com.example.mukmuk.ui.theme.TextHint
-import com.example.mukmuk.ui.theme.TextPrimary
-import com.example.mukmuk.ui.theme.TextSecondary
-import com.example.mukmuk.ui.theme.TextTertiary
+import com.example.mukmuk.ui.theme.mukmukColors
 
 @Composable
 fun RestaurantDetailScreen(
@@ -53,6 +48,8 @@ fun RestaurantDetailScreen(
     viewModel: RestaurantViewModel,
     onBack: () -> Unit
 ) {
+    val colorScheme = MaterialTheme.colorScheme
+    val extColors = MaterialTheme.mukmukColors
     val context = LocalContext.current
     val favorites by viewModel.favorites.collectAsState()
     val isFavorite = favorites.any { it.restaurantName == restaurantName }
@@ -67,7 +64,7 @@ fun RestaurantDetailScreen(
             .fillMaxSize()
             .background(
                 Brush.linearGradient(
-                    colors = listOf(DarkBackground, DarkSurface, DarkSurfaceVariant)
+                    colors = listOf(colorScheme.background, colorScheme.surface, colorScheme.surfaceVariant)
                 )
             )
             .verticalScroll(rememberScrollState())
@@ -84,10 +81,10 @@ fun RestaurantDetailScreen(
         ) {
             Surface(
                 shape = CircleShape,
-                color = CardBackground,
+                color = extColors.cardBackground,
                 modifier = Modifier
                     .size(40.dp)
-                    .border(1.dp, CardBorder, CircleShape)
+                    .border(1.dp, extColors.cardBorder, CircleShape)
                     .clickable { onBack() }
             ) {
                 Row(
@@ -95,23 +92,23 @@ fun RestaurantDetailScreen(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(text = "\u2190", color = TextPrimary, fontSize = 18.sp)
+                    Text(text = "\u2190", color = colorScheme.onSurface, fontSize = 18.sp)
                 }
             }
 
             Text(
                 text = "\uB9DB\uC9D1 \uC0C1\uC138",
-                color = GoldAccent,
+                color = colorScheme.primary,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
             )
 
             Surface(
                 shape = CircleShape,
-                color = if (isFavorite) GoldAccent.copy(alpha = 0.2f) else CardBackground,
+                color = if (isFavorite) colorScheme.primary.copy(alpha = 0.2f) else extColors.cardBackground,
                 modifier = Modifier
                     .size(40.dp)
-                    .border(1.dp, if (isFavorite) GoldAccent else CardBorder, CircleShape)
+                    .border(1.dp, if (isFavorite) colorScheme.primary else extColors.cardBorder, CircleShape)
                     .clickable { viewModel.toggleFavorite(restaurantName) }
             ) {
                 Row(
@@ -121,7 +118,7 @@ fun RestaurantDetailScreen(
                 ) {
                     Text(
                         text = if (isFavorite) "\u2665" else "\u2661",
-                        color = if (isFavorite) GoldAccent else TextSecondary,
+                        color = if (isFavorite) colorScheme.primary else extColors.textSecondary,
                         fontSize = 18.sp
                     )
                 }
@@ -133,7 +130,7 @@ fun RestaurantDetailScreen(
         if (restaurant == null) {
             Text(
                 text = "\uB9DB\uC9D1 \uC815\uBCF4\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.",
-                color = TextSecondary,
+                color = extColors.textSecondary,
                 modifier = Modifier.padding(horizontal = 20.dp)
             )
             return@Column
@@ -142,16 +139,16 @@ fun RestaurantDetailScreen(
         // Main info card
         Surface(
             shape = RoundedCornerShape(16.dp),
-            color = CardBackground,
+            color = extColors.cardBackground,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
-                .border(1.dp, CardBorder, RoundedCornerShape(16.dp))
+                .border(1.dp, extColors.cardBorder, RoundedCornerShape(16.dp))
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
                 Text(
                     text = restaurant.name,
-                    color = Color.White,
+                    color = colorScheme.onSurface,
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -164,14 +161,14 @@ fun RestaurantDetailScreen(
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "${restaurant.rating}",
-                            color = GoldAccent,
+                            color = colorScheme.primary,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "\uB9AC\uBDF0 ${restaurant.reviews}\uAC1C",
-                            color = TextHint,
+                            color = extColors.textHint,
                             fontSize = 12.sp
                         )
                     }
@@ -181,11 +178,11 @@ fun RestaurantDetailScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = GoldAccent.copy(alpha = 0.1f)
+                        color = colorScheme.primary.copy(alpha = 0.1f)
                     ) {
                         Text(
                             text = restaurant.category.displayName,
-                            color = GoldAccent,
+                            color = colorScheme.primary,
                             fontSize = 12.sp,
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                         )
@@ -196,25 +193,69 @@ fun RestaurantDetailScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
+        // Embedded map (only for restaurants with real coordinates, not default hardcoded ones)
+        val isHardcodedLocation = restaurant.latitude == 37.4979 && restaurant.longitude == 127.0276
+        if (!isHardcodedLocation) {
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = extColors.cardBackground,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .border(1.dp, extColors.cardBorder, RoundedCornerShape(16.dp))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "\uD83D\uDDFA\uFE0F \uC704\uCE58",
+                        color = colorScheme.onSurface,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    val lat = restaurant.latitude
+                    val lng = restaurant.longitude
+                    val mapUrl = "https://www.openstreetmap.org/export/embed.html?" +
+                            "bbox=${lng - 0.005},${lat - 0.003},${lng + 0.005},${lat + 0.003}" +
+                            "&layer=mapnik&marker=${lat},${lng}"
+                    AndroidView(
+                        factory = { ctx ->
+                            WebView(ctx).apply {
+                                settings.javaScriptEnabled = true
+                                loadUrl(mapUrl)
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+
         // Details card
         Surface(
             shape = RoundedCornerShape(16.dp),
-            color = CardBackground,
+            color = extColors.cardBackground,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
-                .border(1.dp, CardBorder, RoundedCornerShape(16.dp))
+                .border(1.dp, extColors.cardBorder, RoundedCornerShape(16.dp))
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
                 Text(
                     text = "\uC0C1\uC138 \uC815\uBCF4",
-                    color = TextPrimary,
+                    color = colorScheme.onSurface,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold
                 )
                 Spacer(modifier = Modifier.height(12.dp))
 
-                DetailRow(label = "\uD83D\uDCCD \uAC70\uB9AC", value = restaurant.distance)
+                if (restaurant.distance.isNotEmpty() && restaurant.distance != "0m") {
+                    DetailRow(label = "\uD83D\uDCCD \uAC70\uB9AC", value = restaurant.distance)
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
 
                 if (restaurant.address.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(8.dp))
@@ -244,11 +285,11 @@ fun RestaurantDetailScreen(
         if (restaurant.phone.isNotEmpty()) {
             Surface(
                 shape = RoundedCornerShape(16.dp),
-                color = GoldAccent.copy(alpha = 0.15f),
+                color = colorScheme.primary.copy(alpha = 0.15f),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
-                    .border(1.dp, GoldAccent.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+                    .border(1.dp, colorScheme.primary.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
                     .clickable {
                         val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${restaurant.phone}"))
                         context.startActivity(intent)
@@ -263,7 +304,7 @@ fun RestaurantDetailScreen(
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "\uC804\uD654\uAC78\uAE30",
-                        color = GoldAccent,
+                        color = colorScheme.primary,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -277,11 +318,11 @@ fun RestaurantDetailScreen(
         if (restaurant.placeUrl.isNotEmpty()) {
             Surface(
                 shape = RoundedCornerShape(16.dp),
-                color = GoldAccent.copy(alpha = 0.15f),
+                color = colorScheme.primary.copy(alpha = 0.15f),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
-                    .border(1.dp, GoldAccent.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+                    .border(1.dp, colorScheme.primary.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
                     .clickable {
                         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(restaurant.placeUrl))
                         context.startActivity(intent)
@@ -296,7 +337,7 @@ fun RestaurantDetailScreen(
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "\uCE74\uCE74\uC624\uB9F5\uC5D0\uC11C \uBCF4\uAE30",
-                        color = GoldAccent,
+                        color = colorScheme.primary,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -306,36 +347,40 @@ fun RestaurantDetailScreen(
             Spacer(modifier = Modifier.height(12.dp))
         }
 
-        // Map button (geo intent fallback)
-        Surface(
-            shape = RoundedCornerShape(16.dp),
-            color = GoldAccent.copy(alpha = 0.15f),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .border(1.dp, GoldAccent.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
-                .clickable {
-                    val uri = Uri.parse(
-                        "geo:${restaurant.latitude},${restaurant.longitude}?q=${Uri.encode(restaurant.name)}"
-                    )
-                    val intent = Intent(Intent.ACTION_VIEW, uri)
-                    context.startActivity(intent)
-                }
-        ) {
-            Row(
-                modifier = Modifier.padding(16.dp),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
+        // Map button (geo intent fallback) - only show for real coordinates
+        if (!isHardcodedLocation) {
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = colorScheme.primary.copy(alpha = 0.15f),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .border(1.dp, colorScheme.primary.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+                    .clickable {
+                        val uri = Uri.parse(
+                            "geo:${restaurant.latitude},${restaurant.longitude}?q=${Uri.encode(restaurant.name)}"
+                        )
+                        val intent = Intent(Intent.ACTION_VIEW, uri)
+                        context.startActivity(intent)
+                    }
             ) {
-                Text(text = "\uD83D\uDDFA\uFE0F", fontSize = 20.sp)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "\uC9C0\uB3C4\uC5D0\uC11C \uBCF4\uAE30",
-                    color = GoldAccent,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = "\uD83D\uDDFA\uFE0F", fontSize = 20.sp)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "\uC9C0\uB3C4\uC5D0\uC11C \uBCF4\uAE30",
+                        color = colorScheme.primary,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
+
+            Spacer(modifier = Modifier.height(12.dp))
         }
 
         Spacer(modifier = Modifier.height(80.dp))
@@ -344,12 +389,14 @@ fun RestaurantDetailScreen(
 
 @Composable
 private fun DetailRow(label: String, value: String) {
+    val colorScheme = MaterialTheme.colorScheme
+    val extColors = MaterialTheme.mukmukColors
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = label, color = TextSecondary, fontSize = 13.sp)
-        Text(text = value, color = TextTertiary, fontSize = 13.sp)
+        Text(text = label, color = extColors.textSecondary, fontSize = 13.sp)
+        Text(text = value, color = extColors.textTertiary, fontSize = 13.sp)
     }
 }

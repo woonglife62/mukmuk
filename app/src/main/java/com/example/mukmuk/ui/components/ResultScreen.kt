@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -38,12 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.mukmuk.data.model.Menu
 import com.example.mukmuk.data.model.Restaurant
-import com.example.mukmuk.ui.theme.CardBackground
-import com.example.mukmuk.ui.theme.CardBorder
-import com.example.mukmuk.ui.theme.DarkBackground
-import com.example.mukmuk.ui.theme.GoldAccent
-import com.example.mukmuk.ui.theme.TextHint
-import com.example.mukmuk.ui.theme.TextTertiary
+import com.example.mukmuk.ui.theme.mukmukColors
 
 @Composable
 fun ResultScreen(
@@ -54,6 +50,8 @@ fun ResultScreen(
     onConfirm: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val colorScheme = MaterialTheme.colorScheme
+    val extColors = MaterialTheme.mukmukColors
     val context = LocalContext.current
     AnimatedVisibility(
         visible = true,
@@ -111,20 +109,22 @@ fun ResultScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             // Nearby restaurants header
+            val hasRealApiResults = restaurants.isNotEmpty() &&
+                    restaurants.any { it.placeUrl.isNotEmpty() }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "\uD83D\uDCCD \uADFC\uCC98 \uB9DB\uC9D1",
-                    color = Color.White,
+                    text = if (hasRealApiResults) "\uD83D\uDCCD \uADFC\uCC98 \uB9DB\uC9D1" else "\uD83C\uDF7D\uFE0F \uCD94\uCC9C \uB9DB\uC9D1",
+                    color = colorScheme.onSurface,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "\uD604\uC7AC \uC704\uCE58 \uAE30\uC900",
-                    color = TextHint,
+                    text = if (hasRealApiResults) "\uD604\uC7AC \uC704\uCE58 \uAE30\uC900" else "\uCD94\uCC9C \uBAA9\uB85D",
+                    color = extColors.textHint,
                     fontSize = 12.sp
                 )
             }
@@ -140,13 +140,13 @@ fun ResultScreen(
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         CircularProgressIndicator(
-                            color = GoldAccent,
+                            color = colorScheme.primary,
                             modifier = Modifier.size(32.dp)
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = "\uB9DB\uC9D1 \uAC80\uC0C9 \uC911...",
-                            color = TextTertiary,
+                            color = extColors.textTertiary,
                             fontSize = 13.sp
                         )
                     }
@@ -170,10 +170,10 @@ fun ResultScreen(
                     onClick = onRetry,
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(14.dp),
-                    border = BorderStroke(1.dp, CardBorder),
+                    border = BorderStroke(1.dp, extColors.cardBorder),
                     colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = Color.White,
-                        containerColor = CardBackground
+                        contentColor = colorScheme.onSurface,
+                        containerColor = extColors.cardBackground
                     )
                 ) {
                     Text(
@@ -188,8 +188,8 @@ fun ResultScreen(
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = GoldAccent,
-                        contentColor = DarkBackground
+                        containerColor = colorScheme.primary,
+                        contentColor = colorScheme.background
                     )
                 ) {
                     Text(
@@ -214,10 +214,10 @@ fun ResultScreen(
                 },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
-                border = BorderStroke(1.dp, CardBorder),
+                border = BorderStroke(1.dp, extColors.cardBorder),
                 colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = Color.White,
-                    containerColor = CardBackground
+                    contentColor = colorScheme.onSurface,
+                    containerColor = extColors.cardBackground
                 )
             ) {
                 Text(
@@ -235,13 +235,15 @@ fun ResultScreen(
 
 @Composable
 private fun RestaurantCard(restaurant: Restaurant) {
+    val colorScheme = MaterialTheme.colorScheme
+    val extColors = MaterialTheme.mukmukColors
     val context = LocalContext.current
     Surface(
         shape = RoundedCornerShape(16.dp),
-        color = CardBackground,
+        color = extColors.cardBackground,
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, CardBorder, RoundedCornerShape(16.dp))
+            .border(1.dp, extColors.cardBorder, RoundedCornerShape(16.dp))
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
@@ -251,7 +253,7 @@ private fun RestaurantCard(restaurant: Restaurant) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = restaurant.name,
-                    color = Color.White,
+                    color = colorScheme.onSurface,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -261,7 +263,7 @@ private fun RestaurantCard(restaurant: Restaurant) {
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = "\uB9AC\uBDF0 ${restaurant.reviews}\uAC1C",
-                        color = TextHint,
+                        color = extColors.textHint,
                         fontSize = 11.sp
                     )
                 }
@@ -269,7 +271,7 @@ private fun RestaurantCard(restaurant: Restaurant) {
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = "\uD83D\uDCCD ${restaurant.address}",
-                        color = TextTertiary,
+                        color = extColors.textTertiary,
                         fontSize = 11.sp,
                         maxLines = 1
                     )
@@ -278,22 +280,24 @@ private fun RestaurantCard(restaurant: Restaurant) {
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = "\uD83D\uDCDE ${restaurant.phone}",
-                        color = TextTertiary,
+                        color = extColors.textTertiary,
                         fontSize = 11.sp
                     )
                 }
             }
             Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = restaurant.distance,
-                    color = GoldAccent,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(6.dp))
+                if (restaurant.distance != "0m" && restaurant.distance.isNotEmpty()) {
+                    Text(
+                        text = restaurant.distance,
+                        color = colorScheme.primary,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                }
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = GoldAccent.copy(alpha = 0.15f),
+                    color = colorScheme.primary.copy(alpha = 0.15f),
                     modifier = Modifier.clickable {
                         if (restaurant.placeUrl.isNotEmpty()) {
                             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(restaurant.placeUrl)))
@@ -315,7 +319,7 @@ private fun RestaurantCard(restaurant: Restaurant) {
                 ) {
                     Text(
                         text = "\uC9C0\uB3C4 \uBCF4\uAE30",
-                        color = GoldAccent,
+                        color = colorScheme.primary,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)

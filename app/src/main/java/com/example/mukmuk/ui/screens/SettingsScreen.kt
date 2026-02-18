@@ -16,6 +16,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -33,18 +34,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.mukmuk.BuildConfig
+import com.example.mukmuk.R
 import com.example.mukmuk.notification.NotificationScheduler
 import com.example.mukmuk.ui.RouletteViewModel
-import com.example.mukmuk.ui.theme.DarkBackground
-import com.example.mukmuk.ui.theme.DarkSurface
-import com.example.mukmuk.ui.theme.DarkSurfaceVariant
-import com.example.mukmuk.ui.theme.GoldAccent
-import com.example.mukmuk.ui.theme.TextPrimary
-import com.example.mukmuk.ui.theme.TextSecondary
-import com.example.mukmuk.ui.theme.TextTertiary
+import com.example.mukmuk.ui.theme.mukmukColors
 
 @Composable
 fun SettingsScreen(viewModel: RouletteViewModel) {
@@ -56,13 +54,19 @@ fun SettingsScreen(viewModel: RouletteViewModel) {
     val notificationMinute by viewModel.notificationMinute.collectAsState()
     var showDeleteDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val colorScheme = MaterialTheme.colorScheme
+    val extColors = MaterialTheme.mukmukColors
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(
                 Brush.linearGradient(
-                    colors = listOf(DarkBackground, DarkSurface, DarkSurfaceVariant)
+                    colors = listOf(
+                        colorScheme.background,
+                        colorScheme.surface,
+                        colorScheme.surfaceVariant
+                    )
                 )
             )
             .verticalScroll(rememberScrollState())
@@ -71,8 +75,8 @@ fun SettingsScreen(viewModel: RouletteViewModel) {
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "설정",
-            color = GoldAccent,
+            text = stringResource(R.string.settings_title),
+            color = colorScheme.primary,
             fontSize = 22.sp,
             fontWeight = FontWeight.Bold
         )
@@ -80,13 +84,13 @@ fun SettingsScreen(viewModel: RouletteViewModel) {
         Spacer(modifier = Modifier.height(24.dp))
 
         // General section
-        SectionHeader(title = "일반")
+        SectionHeader(title = stringResource(R.string.settings_section_general))
         Spacer(modifier = Modifier.height(8.dp))
 
         SettingsToggleItem(
-            icon = "📳",
-            title = "햅틱 피드백",
-            subtitle = "룰렛 조작 시 진동 피드백",
+            icon = "\uD83D\uDCF3",
+            title = stringResource(R.string.settings_haptic_title),
+            subtitle = stringResource(R.string.settings_haptic_subtitle),
             checked = hapticEnabled,
             onCheckedChange = { viewModel.setHapticEnabled(it) }
         )
@@ -94,9 +98,9 @@ fun SettingsScreen(viewModel: RouletteViewModel) {
         Spacer(modifier = Modifier.height(8.dp))
 
         SettingsToggleItem(
-            icon = "🔔",
-            title = "사운드 효과",
-            subtitle = "룰렛 회전 시 효과음",
+            icon = "\uD83D\uDD14",
+            title = stringResource(R.string.settings_sound_title),
+            subtitle = stringResource(R.string.settings_sound_subtitle),
             checked = soundEnabled,
             onCheckedChange = { viewModel.setSoundEnabled(it) }
         )
@@ -104,9 +108,9 @@ fun SettingsScreen(viewModel: RouletteViewModel) {
         Spacer(modifier = Modifier.height(8.dp))
 
         SettingsToggleItem(
-            icon = "🌙",
-            title = "다크 모드",
-            subtitle = "어두운 테마 사용 (라이트 모드 준비 중)",
+            icon = "\uD83C\uDF19",
+            title = stringResource(R.string.settings_dark_mode_title),
+            subtitle = stringResource(R.string.settings_dark_mode_subtitle),
             checked = darkTheme,
             onCheckedChange = { viewModel.setDarkTheme(it) }
         )
@@ -114,13 +118,13 @@ fun SettingsScreen(viewModel: RouletteViewModel) {
         Spacer(modifier = Modifier.height(24.dp))
 
         // Notification section
-        SectionHeader(title = "알림 설정")
+        SectionHeader(title = stringResource(R.string.settings_section_notification))
         Spacer(modifier = Modifier.height(8.dp))
 
         SettingsToggleItem(
-            icon = "🔔",
-            title = "점심 알림",
-            subtitle = "매일 설정한 시간에 메뉴 추천 알림",
+            icon = "\uD83D\uDD14",
+            title = stringResource(R.string.settings_notification_title),
+            subtitle = stringResource(R.string.settings_notification_subtitle),
             checked = notificationEnabled,
             onCheckedChange = { enabled ->
                 viewModel.setNotificationEnabled(enabled)
@@ -135,10 +139,11 @@ fun SettingsScreen(viewModel: RouletteViewModel) {
         Spacer(modifier = Modifier.height(8.dp))
 
         SettingsActionItem(
-            icon = "🕐",
-            title = "알림 시간",
+            icon = "\uD83D\uDD50",
+            title = stringResource(R.string.settings_notification_time_title),
             subtitle = String.format("%02d:%02d", notificationHour, notificationMinute),
-            actionColor = GoldAccent,
+            actionLabel = stringResource(R.string.settings_action_change),
+            actionColor = colorScheme.primary,
             onClick = {
                 TimePickerDialog(
                     context,
@@ -158,35 +163,36 @@ fun SettingsScreen(viewModel: RouletteViewModel) {
         Spacer(modifier = Modifier.height(24.dp))
 
         // Data section
-        SectionHeader(title = "데이터")
+        SectionHeader(title = stringResource(R.string.settings_section_data))
         Spacer(modifier = Modifier.height(8.dp))
 
         SettingsActionItem(
-            icon = "🗑️",
-            title = "기록 초기화",
-            subtitle = "모든 선택 기록을 삭제합니다",
-            actionColor = Color(0xFFFF6B6B),
+            icon = "\uD83D\uDDD1\uFE0F",
+            title = stringResource(R.string.settings_clear_history_title),
+            subtitle = stringResource(R.string.settings_clear_history_subtitle),
+            actionLabel = stringResource(R.string.settings_clear_history_button),
+            actionColor = extColors.error,
             onClick = { showDeleteDialog = true }
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
         // Info section
-        SectionHeader(title = "정보")
+        SectionHeader(title = stringResource(R.string.settings_section_info))
         Spacer(modifier = Modifier.height(8.dp))
 
         SettingsInfoItem(
-            icon = "📱",
-            title = "앱 버전",
-            value = "1.0"
+            icon = "\uD83D\uDCF1",
+            title = stringResource(R.string.settings_version_title),
+            value = BuildConfig.VERSION_NAME
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
         SettingsInfoItem(
-            icon = "🍽️",
-            title = "먹먹",
-            value = "오늘 뭐 먹지?"
+            icon = "\uD83C\uDF7D\uFE0F",
+            title = stringResource(R.string.settings_app_title),
+            value = stringResource(R.string.settings_app_subtitle)
         )
 
         Spacer(modifier = Modifier.height(100.dp))
@@ -195,19 +201,19 @@ fun SettingsScreen(viewModel: RouletteViewModel) {
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("기록 초기화") },
-            text = { Text("모든 선택 기록을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.") },
+            title = { Text(stringResource(R.string.settings_clear_dialog_title)) },
+            text = { Text(stringResource(R.string.settings_clear_dialog_message)) },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.clearHistory()
                     showDeleteDialog = false
                 }) {
-                    Text("삭제", color = Color(0xFFFF6B6B))
+                    Text(stringResource(R.string.delete), color = extColors.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("취소")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -218,7 +224,7 @@ fun SettingsScreen(viewModel: RouletteViewModel) {
 private fun SectionHeader(title: String) {
     Text(
         text = title,
-        color = GoldAccent,
+        color = MaterialTheme.colorScheme.primary,
         fontSize = 14.sp,
         fontWeight = FontWeight.SemiBold,
         modifier = Modifier.padding(horizontal = 4.dp)
@@ -233,11 +239,13 @@ private fun SettingsToggleItem(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit
 ) {
+    val colorScheme = MaterialTheme.colorScheme
+    val extColors = MaterialTheme.mukmukColors
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(DarkSurface.copy(alpha = 0.7f))
+            .background(colorScheme.surface.copy(alpha = 0.7f))
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -251,13 +259,13 @@ private fun SettingsToggleItem(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
-                color = TextPrimary,
+                color = colorScheme.onSurface,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Medium
             )
             Text(
                 text = subtitle,
-                color = TextTertiary,
+                color = extColors.textTertiary,
                 fontSize = 12.sp
             )
         }
@@ -265,10 +273,10 @@ private fun SettingsToggleItem(
             checked = checked,
             onCheckedChange = onCheckedChange,
             colors = SwitchDefaults.colors(
-                checkedThumbColor = DarkBackground,
-                checkedTrackColor = GoldAccent,
-                uncheckedThumbColor = TextSecondary,
-                uncheckedTrackColor = DarkSurfaceVariant
+                checkedThumbColor = colorScheme.background,
+                checkedTrackColor = colorScheme.primary,
+                uncheckedThumbColor = extColors.textSecondary,
+                uncheckedTrackColor = colorScheme.surfaceVariant
             )
         )
     }
@@ -279,14 +287,17 @@ private fun SettingsActionItem(
     icon: String,
     title: String,
     subtitle: String,
+    actionLabel: String,
     actionColor: Color,
     onClick: () -> Unit
 ) {
+    val colorScheme = MaterialTheme.colorScheme
+    val extColors = MaterialTheme.mukmukColors
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(DarkSurface.copy(alpha = 0.7f))
+            .background(colorScheme.surface.copy(alpha = 0.7f))
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -300,18 +311,18 @@ private fun SettingsActionItem(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
-                color = TextPrimary,
+                color = colorScheme.onSurface,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Medium
             )
             Text(
                 text = subtitle,
-                color = TextTertiary,
+                color = extColors.textTertiary,
                 fontSize = 12.sp
             )
         }
         TextButton(onClick = onClick) {
-            Text(text = "초기화", color = actionColor, fontSize = 13.sp)
+            Text(text = actionLabel, color = actionColor, fontSize = 13.sp)
         }
     }
 }
@@ -322,11 +333,13 @@ private fun SettingsInfoItem(
     title: String,
     value: String
 ) {
+    val colorScheme = MaterialTheme.colorScheme
+    val extColors = MaterialTheme.mukmukColors
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(DarkSurface.copy(alpha = 0.7f))
+            .background(colorScheme.surface.copy(alpha = 0.7f))
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
@@ -341,14 +354,14 @@ private fun SettingsInfoItem(
             Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = title,
-                color = TextPrimary,
+                color = colorScheme.onSurface,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Medium
             )
         }
         Text(
             text = value,
-            color = TextTertiary,
+            color = extColors.textTertiary,
             fontSize = 14.sp
         )
     }

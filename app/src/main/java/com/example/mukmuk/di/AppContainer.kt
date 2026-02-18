@@ -15,8 +15,6 @@ import com.example.mukmuk.data.repository.SettingsRepository
 import com.example.mukmuk.ui.HistoryViewModel
 import com.example.mukmuk.ui.RestaurantViewModel
 import com.example.mukmuk.ui.RouletteViewModel
-import com.example.mukmuk.ui.SettingsViewModel
-
 class AppContainer(context: Context) {
     val database: AppDatabase = AppDatabase.getInstance(context)
     val historyDao: HistoryDao = database.historyDao()
@@ -47,8 +45,6 @@ class MukmukViewModelFactory(private val container: AppContainer) : ViewModelPro
                 container.locationService,
                 container.remoteRestaurantRepository
             ) as T
-        modelClass.isAssignableFrom(SettingsViewModel::class.java) ->
-            SettingsViewModel(container.settingsRepository) as T
         else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
     }
 }

@@ -1,7 +1,11 @@
 package com.example.mukmuk.ui.screens
 
-import android.media.AudioAttributes
-import android.media.SoundPool
+import android.Manifest
+import android.content.pm.PackageManager
+import android.media.AudioManager
+import android.media.ToneGenerator
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.tween
@@ -43,16 +47,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import com.example.mukmuk.ui.RouletteViewModel
 import com.example.mukmuk.ui.components.CategoryChips
+import com.example.mukmuk.ui.components.LocationPermissionDialog
 import com.example.mukmuk.ui.components.MenuGrid
 import com.example.mukmuk.ui.components.ResultScreen
 import com.example.mukmuk.ui.components.RouletteWheel
-import com.example.mukmuk.ui.theme.DarkBackground
-import com.example.mukmuk.ui.theme.DarkSurface
-import com.example.mukmuk.ui.theme.DarkSurfaceVariant
-import com.example.mukmuk.ui.theme.GoldAccent
-import com.example.mukmuk.ui.theme.TextTertiary
+import com.example.mukmuk.ui.theme.mukmukColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.random.Random
@@ -62,6 +64,8 @@ fun RouletteScreen(
     viewModel: RouletteViewModel,
     modifier: Modifier = Modifier
 ) {
+    val colorScheme = MaterialTheme.colorScheme
+    val extColors = MaterialTheme.mukmukColors
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val animatable = remember { Animatable(viewModel.rotation) }
@@ -71,26 +75,49 @@ fun RouletteScreen(
     val soundEnabled by viewModel.soundEnabled.collectAsState()
     var showConfetti by remember { mutableStateOf(false) }
 
-    // SoundPool for tick sound
-    val soundPool = remember {
-        SoundPool.Builder()
-            .setMaxStreams(2)
-            .setAudioAttributes(
-                AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_GAME)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .build()
-            )
-            .build()
+    // Location permission
+    var showLocationDialog by remember { mutableStateOf(false) }
+    var locationPermissionGranted by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
+                    PackageManager.PERMISSION_GRANTED ||
+                    ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) ==
+                    PackageManager.PERMISSION_GRANTED
+        )
     }
-    // Generate tick sound programmatically (short beep)
-    val tickSoundId = remember { mutableStateOf(0) }
-    LaunchedEffect(Unit) {
-        // We'll use ToneGenerator-style approach via SoundPool
-        // Since we don't have sound assets, we use haptic as a substitute when sound is on
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        locationPermissionGranted =
+            permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                    permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+    }
+
+    if (showLocationDialog) {
+        LocationPermissionDialog(
+            onConfirm = {
+                showLocationDialog = false
+                permissionLauncher.launch(
+                    arrayOf(
+                        Manifest.permission.ACCESS_FINE_LOCATION,
+                        Manifest.permission.ACCESS_COARSE_LOCATION
+                    )
+                )
+            },
+            onDismiss = { showLocationDialog = false }
+        )
+    }
+
+    // ToneGenerator for tick/completion sounds
+    val toneGenerator = remember {
+        try {
+            ToneGenerator(AudioManager.STREAM_MUSIC, 60)
+        } catch (_: Exception) {
+            null
+        }
     }
     DisposableEffect(Unit) {
-        onDispose { soundPool.release() }
+        onDispose { toneGenerator?.release() }
     }
 
     // Confetti animation
@@ -109,6 +136,9 @@ fun RouletteScreen(
     }
 
     val spinWheel = {
+        if (!locationPermissionGranted) {
+            showLocationDialog = true
+        }
         if (!viewModel.isSpinning && viewModel.filteredMenus.isNotEmpty()) {
             viewModel.updateSpinning(true)
             if (hapticEnabled) hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -127,7 +157,7 @@ fun RouletteScreen(
                 }
                 viewModel.onSpinComplete(target)
                 if (hapticEnabled) hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                if (soundEnabled) hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                if (soundEnabled) toneGenerator?.startTone(ToneGenerator.TONE_PROP_ACK, 150)
                 showConfetti = true
                 delay(300)
                 viewModel.showResultScreen()
@@ -142,7 +172,7 @@ fun RouletteScreen(
                 .fillMaxSize()
                 .background(
                     Brush.linearGradient(
-                        colors = listOf(DarkBackground, DarkSurface, DarkSurfaceVariant)
+                        colors = listOf(colorScheme.background, colorScheme.surface, colorScheme.surfaceVariant)
                     )
                 )
                 .verticalScroll(rememberScrollState()),
@@ -154,12 +184,12 @@ fun RouletteScreen(
             text = "\uC624\uB298 \uBFD0 \uBA39\uC9C0? \uD83E\uDD14",
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
-            color = GoldAccent,
+            color = colorScheme.primary,
             textAlign = TextAlign.Center
         )
         Text(
             text = "\uACE0\uBBFC\uC740 \uADF8\uB9CC, \uB8F0\uB81B\uC5D0 \uB9E1\uACA8!",
-            color = TextTertiary,
+            color = extColors.textTertiary,
             fontSize = 13.sp,
             modifier = Modifier.padding(top = 4.dp)
         )
@@ -187,7 +217,7 @@ fun RouletteScreen(
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
                     text = "\uC120\uD0DD\uD55C \uCE74\uD14C\uACE0\uB9AC\uC5D0 \uBA54\uB274\uAC00 \uC5C6\uC5B4\uC694",
-                    color = TextTertiary,
+                    color = extColors.textTertiary,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium
                 )
@@ -196,8 +226,8 @@ fun RouletteScreen(
                     onClick = { viewModel.clearAllCategories() },
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = GoldAccent,
-                        contentColor = DarkBackground
+                        containerColor = colorScheme.primary,
+                        contentColor = colorScheme.background
                     )
                 ) {
                     Text(
@@ -223,9 +253,9 @@ fun RouletteScreen(
                     enabled = !viewModel.isSpinning && viewModel.filteredMenus.isNotEmpty(),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = GoldAccent,
-                        contentColor = DarkBackground,
-                        disabledContainerColor = GoldAccent.copy(alpha = 0.3f),
+                        containerColor = colorScheme.primary,
+                        contentColor = colorScheme.background,
+                        disabledContainerColor = colorScheme.primary.copy(alpha = 0.3f),
                         disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                     ),
                     modifier = Modifier.padding(horizontal = 48.dp)

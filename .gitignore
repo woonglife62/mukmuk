@@ -29,6 +29,10 @@ replay_pid*
 # Environment variables
 .env
 
+# Signing
+key.properties
+*.jks
+
 # OMC / Claude local state
 .omc/
 .claude/

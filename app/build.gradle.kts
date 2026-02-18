@@ -18,16 +18,29 @@ val envProps = if (envFile.exists()) {
     emptyMap()
 }
 
+// Read key.properties for signing config
+val keyPropsFile = rootProject.file("key.properties")
+val keyProps = if (keyPropsFile.exists()) {
+    keyPropsFile.readLines()
+        .filter { it.isNotBlank() && !it.startsWith("#") && it.contains("=") }
+        .associate { line ->
+            val (key, value) = line.split("=", limit = 2)
+            key.trim() to value.trim()
+        }
+} else {
+    emptyMap()
+}
+
 android {
     namespace = "com.example.mukmuk"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.mukmuk"
+        applicationId = "com.mukmuk.app"
         minSdk = 24
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.2"
+        versionCode = 2
+        versionName = "1.2.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField(
             "String",
@@ -36,10 +49,22 @@ android {
         )
     }
 
+    signingConfigs {
+        create("release") {
+            if (keyPropsFile.exists()) {
+                storeFile = rootProject.file(keyProps["storeFile"] as String)
+                storePassword = keyProps["storePassword"] as String
+                keyAlias = keyProps["keyAlias"] as String
+                keyPassword = keyProps["keyPassword"] as String
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

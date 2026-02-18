@@ -7,6 +7,7 @@ import com.example.mukmuk.data.local.AppDatabase
 import com.example.mukmuk.data.local.FavoriteDao
 import com.example.mukmuk.data.local.HistoryDao
 import com.example.mukmuk.data.local.MenuDao
+import com.example.mukmuk.data.local.VisitRecordDao
 import com.example.mukmuk.data.location.LocationService
 import com.example.mukmuk.data.remote.NetworkModule
 import com.example.mukmuk.data.repository.HistoryRepository
@@ -20,6 +21,7 @@ class AppContainer(context: Context) {
     val historyDao: HistoryDao = database.historyDao()
     val menuDao: MenuDao = database.menuDao()
     val favoriteDao: FavoriteDao = database.favoriteDao()
+    val visitRecordDao: VisitRecordDao = database.visitRecordDao()
     val historyRepository: HistoryRepository = HistoryRepository(historyDao)
     val settingsRepository: SettingsRepository = SettingsRepository(context)
     val locationService: LocationService = LocationService(context)
@@ -38,12 +40,14 @@ class MukmukViewModelFactory(private val container: AppContainer) : ViewModelPro
                 container.remoteRestaurantRepository
             ) as T
         modelClass.isAssignableFrom(HistoryViewModel::class.java) ->
-            HistoryViewModel(container.historyRepository) as T
+            HistoryViewModel(container.visitRecordDao) as T
         modelClass.isAssignableFrom(RestaurantViewModel::class.java) ->
             RestaurantViewModel(
                 container.favoriteDao,
                 container.locationService,
-                container.remoteRestaurantRepository
+                container.remoteRestaurantRepository,
+                container.settingsRepository,
+                container.visitRecordDao
             ) as T
         else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
     }

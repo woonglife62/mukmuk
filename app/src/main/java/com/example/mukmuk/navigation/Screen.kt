@@ -14,6 +14,7 @@ sealed class Screen(
     data object RestaurantDetail : Screen("restaurant_detail/{name}", "", "") {
         fun createRoute(name: String) = "restaurant_detail/${Uri.encode(name)}"
     }
+    data object Map : Screen("map", "", "")
 
     companion object {
         val bottomNavItems = listOf(Roulette, Restaurants, History, Settings)

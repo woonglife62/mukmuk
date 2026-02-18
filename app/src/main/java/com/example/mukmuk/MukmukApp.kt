@@ -19,6 +19,7 @@ import com.example.mukmuk.ui.RestaurantViewModel
 import com.example.mukmuk.ui.RouletteViewModel
 import com.example.mukmuk.ui.components.BottomNavBar
 import com.example.mukmuk.ui.screens.HistoryScreen
+import com.example.mukmuk.ui.screens.MapScreen
 import com.example.mukmuk.ui.screens.RestaurantDetailScreen
 import com.example.mukmuk.ui.screens.RestaurantsScreen
 import com.example.mukmuk.ui.screens.RouletteScreen
@@ -55,7 +56,8 @@ fun MukmukApp() {
                         viewModel = restaurantViewModel,
                         onRestaurantClick = { name ->
                             navController.navigate(Screen.RestaurantDetail.createRoute(name))
-                        }
+                        },
+                        onMapClick = { navController.navigate(Screen.Map.route) }
                     )
                 }
                 composable(Screen.History.route) {
@@ -70,6 +72,15 @@ fun MukmukApp() {
                         restaurantName = name,
                         viewModel = restaurantViewModel,
                         onBack = { navController.popBackStack() }
+                    )
+                }
+                composable(Screen.Map.route) {
+                    MapScreen(
+                        restaurantViewModel = restaurantViewModel,
+                        onBack = { navController.popBackStack() },
+                        onAddToRecord = { restaurant ->
+                            restaurantViewModel.addVisitRecord(restaurant)
+                        }
                     )
                 }
             }

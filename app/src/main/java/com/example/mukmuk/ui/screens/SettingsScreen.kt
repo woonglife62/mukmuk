@@ -15,8 +15,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -52,6 +56,7 @@ fun SettingsScreen(viewModel: RouletteViewModel) {
     val notificationEnabled by viewModel.notificationEnabled.collectAsState()
     val notificationHour by viewModel.notificationHour.collectAsState()
     val notificationMinute by viewModel.notificationMinute.collectAsState()
+    val searchRadius by viewModel.searchRadius.collectAsState()
     var showDeleteDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val colorScheme = MaterialTheme.colorScheme
@@ -114,6 +119,55 @@ fun SettingsScreen(viewModel: RouletteViewModel) {
             checked = darkTheme,
             onCheckedChange = { viewModel.setDarkTheme(it) }
         )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Search settings section
+        SectionHeader(title = "검색 설정")
+        Spacer(modifier = Modifier.height(8.dp))
+
+        val radiusOptions = listOf(500 to "500m", 1000 to "1km", 2000 to "2km", 3000 to "3km", 5000 to "5km")
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f))
+                .padding(horizontal = 16.dp, vertical = 14.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(modifier = Modifier.size(36.dp), contentAlignment = Alignment.Center) {
+                    Text(text = "\uD83D\uDCCD", fontSize = 20.sp)
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = "검색 반경",
+                    color = colorScheme.onSurface,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                radiusOptions.forEach { (value, label) ->
+                    val selected = searchRadius == value
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = if (selected) colorScheme.primary else colorScheme.surfaceVariant,
+                        modifier = Modifier.clickable { viewModel.setSearchRadius(value) }
+                    ) {
+                        Text(
+                            text = label,
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                            color = if (selected) colorScheme.onPrimary else colorScheme.onSurfaceVariant,
+                            fontSize = 13.sp,
+                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+                        )
+                    }
+                }
+            }
+        }
 
         Spacer(modifier = Modifier.height(24.dp))
 

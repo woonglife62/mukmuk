@@ -12,8 +12,8 @@ val TextPrimary = Color.White
 val TextSecondary = Color.White.copy(alpha = 0.6f)
 val TextTertiary = Color.White.copy(alpha = 0.4f)
 val TextHint = Color.White.copy(alpha = 0.3f)
-val CardBackground = Color.White.copy(alpha = 0.05f)
-val CardBorder = Color.White.copy(alpha = 0.08f)
+val CardBackground = Color.White.copy(alpha = 0.07f)
+val CardBorder = Color.White.copy(alpha = 0.10f)
 val ChipBorder = Color.White.copy(alpha = 0.12f)
 
 data class MukmukExtendedColors(
@@ -46,8 +46,8 @@ val LightTextPrimary = Color(0xFF1A1A1A)
 val LightTextSecondary = Color(0xFF1A1A1A).copy(alpha = 0.6f)
 val LightTextTertiary = Color(0xFF1A1A1A).copy(alpha = 0.4f)
 val LightTextHint = Color(0xFF1A1A1A).copy(alpha = 0.3f)
-val LightCardBackground = Color(0xFF000000).copy(alpha = 0.04f)
-val LightCardBorder = Color(0xFF000000).copy(alpha = 0.08f)
+val LightCardBackground = Color(0xFF000000).copy(alpha = 0.06f)
+val LightCardBorder = Color(0xFF000000).copy(alpha = 0.10f)
 val LightChipBorder = Color(0xFF000000).copy(alpha = 0.12f)
 
 val LightMukmukColors = MukmukExtendedColors(

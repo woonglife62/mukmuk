@@ -19,7 +19,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -45,13 +44,7 @@ fun BottomNavBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(Color.Transparent, MaterialTheme.colorScheme.background),
-                    startY = 0f,
-                    endY = 40f
-                )
-            )
+            .background(MaterialTheme.colorScheme.surface)
             .padding(horizontal = 24.dp, vertical = 12.dp)
             .padding(bottom = 8.dp),
         horizontalArrangement = Arrangement.SpaceAround
@@ -66,6 +59,10 @@ fun BottomNavBar(
                         contentDescription = "${screen.title} \uD0ED"
                         role = Role.Tab
                     }
+                    .background(
+                        color = if (isActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else Color.Transparent,
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
+                    )
                     .clickable {
                         if (currentRoute != screen.route) {
                             navController.navigate(screen.route) {
@@ -84,6 +81,7 @@ fun BottomNavBar(
                     fontSize = 22.sp,
                     modifier = Modifier.alpha(if (isActive) 1f else 0.4f)
                 )
+                Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = screen.title,
                     fontSize = 10.sp,
@@ -95,7 +93,7 @@ fun BottomNavBar(
                     Spacer(modifier = Modifier.height(2.dp))
                     Box(
                         modifier = Modifier
-                            .size(4.dp)
+                            .size(5.dp)
                             .background(MaterialTheme.colorScheme.primary, CircleShape)
                     )
                 }

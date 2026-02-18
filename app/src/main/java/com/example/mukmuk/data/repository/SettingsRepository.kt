@@ -21,6 +21,7 @@ class SettingsRepository(private val context: Context) {
         val NOTIFICATION_ENABLED = booleanPreferencesKey("notification_enabled")
         val NOTIFICATION_HOUR = intPreferencesKey("notification_hour")
         val NOTIFICATION_MINUTE = intPreferencesKey("notification_minute")
+        val SEARCH_RADIUS = intPreferencesKey("search_radius")
     }
 
     val hapticEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
@@ -75,6 +76,16 @@ class SettingsRepository(private val context: Context) {
         context.dataStore.edit { prefs ->
             prefs[Keys.NOTIFICATION_HOUR] = hour
             prefs[Keys.NOTIFICATION_MINUTE] = minute
+        }
+    }
+
+    val searchRadius: Flow<Int> = context.dataStore.data.map { prefs ->
+        prefs[Keys.SEARCH_RADIUS] ?: 2000
+    }
+
+    suspend fun setSearchRadius(radius: Int) {
+        context.dataStore.edit { prefs ->
+            prefs[Keys.SEARCH_RADIUS] = radius
         }
     }
 }

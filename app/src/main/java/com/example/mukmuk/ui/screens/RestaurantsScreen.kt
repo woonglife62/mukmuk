@@ -1,7 +1,9 @@
 package com.example.mukmuk.ui.screens
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -66,7 +68,8 @@ import com.example.mukmuk.ui.theme.mukmukColors
 @Composable
 fun RestaurantsScreen(
     viewModel: RestaurantViewModel,
-    onRestaurantClick: (String) -> Unit
+    onRestaurantClick: (String) -> Unit,
+    onMapClick: () -> Unit = {}
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val extColors = MaterialTheme.mukmukColors
@@ -145,7 +148,7 @@ fun RestaurantsScreen(
             Text(
                 text = "근처 맛집",
                 color = colorScheme.primary,
-                fontSize = 22.sp,
+                fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(horizontal = 20.dp)
             )
@@ -175,17 +178,35 @@ fun RestaurantsScreen(
                     .border(1.dp, extColors.chipBorder, RoundedCornerShape(12.dp))
                     .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
-                if (viewModel.searchQuery.isEmpty()) {
-                    Text(text = "맛집 검색...", color = extColors.textHint, fontSize = 14.sp)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = "\uD83D\uDD0D", fontSize = 14.sp)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(modifier = Modifier.weight(1f)) {
+                        if (viewModel.searchQuery.isEmpty()) {
+                            Text(text = "맛집 검색...", color = extColors.textHint, fontSize = 14.sp)
+                        }
+                        BasicTextField(
+                            value = viewModel.searchQuery,
+                            onValueChange = { viewModel.updateSearchQuery(it) },
+                            textStyle = TextStyle(color = colorScheme.onSurface, fontSize = 14.sp),
+                            cursorBrush = SolidColor(colorScheme.primary),
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                    if (viewModel.searchQuery.isNotEmpty()) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "\u2715",
+                            color = extColors.textHint,
+                            fontSize = 14.sp,
+                            modifier = Modifier.clickable { viewModel.updateSearchQuery("") }
+                        )
+                    }
                 }
-                BasicTextField(
-                    value = viewModel.searchQuery,
-                    onValueChange = { viewModel.updateSearchQuery(it) },
-                    textStyle = TextStyle(color = colorScheme.onSurface, fontSize = 14.sp),
-                    cursorBrush = SolidColor(colorScheme.primary),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -267,6 +288,7 @@ fun RestaurantsScreen(
                         text = "${restaurants.size}개의 맛집",
                         color = extColors.textSecondary,
                         fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(horizontal = 20.dp)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -285,6 +307,7 @@ fun RestaurantsScreen(
                             text = "${restaurants.size}\uAC1C\uC758 \uB9DB\uC9D1",
                             color = extColors.textSecondary,
                             fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 20.dp)
                         )
                         Spacer(modifier = Modifier.height(8.dp))
@@ -299,6 +322,27 @@ fun RestaurantsScreen(
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 80.dp)
         )
+
+        // Floating map button
+        if (restaurants.isNotEmpty()) {
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 16.dp, bottom = 90.dp)
+                    .clickable { onMapClick() },
+                shape = RoundedCornerShape(24.dp),
+                color = MaterialTheme.colorScheme.primary,
+                shadowElevation = 6.dp
+            ) {
+                Text(
+                    text = "\uD83D\uDDFA\uFE0F 지도로 보기",
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
     }
 }
 
@@ -313,7 +357,7 @@ private fun RestaurantList(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         items(restaurants) { restaurant ->
             val isFavorite = favorites.any { it.restaurantName == restaurant.name }
@@ -406,7 +450,7 @@ private fun CategoryFilterChip(
             .clickable(onClick = onClick)
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(text = emoji, fontSize = 14.sp)
@@ -430,9 +474,11 @@ private fun RestaurantDetailCard(
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val extColors = MaterialTheme.mukmukColors
+    val context = LocalContext.current
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = extColors.cardBackground,
+        shadowElevation = 2.dp,
         modifier = Modifier
             .fillMaxWidth()
             .border(1.dp, extColors.cardBorder, RoundedCornerShape(16.dp))
@@ -462,6 +508,17 @@ private fun RestaurantDetailCard(
                                 fontSize = 11.sp
                             )
                         }
+                    } else if (restaurant.placeUrl.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "\uD83D\uDCCD \uCE74\uCE74\uC624\uB9F5\uC5D0\uC11C \uBCF4\uAE30",
+                            color = colorScheme.primary,
+                            fontSize = 11.sp,
+                            modifier = Modifier.clickable {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(restaurant.placeUrl))
+                                context.startActivity(intent)
+                            }
+                        )
                     }
                     if (restaurant.address.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(4.dp))

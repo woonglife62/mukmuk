@@ -165,6 +165,9 @@ class RouletteViewModel(
     val notificationMinute = settingsRepository.notificationMinute
         .stateIn(viewModelScope, SharingStarted.Eagerly, 0)
 
+    val searchRadius = settingsRepository.searchRadius
+        .stateIn(viewModelScope, SharingStarted.Eagerly, 2000)
+
     fun setNotificationEnabled(enabled: Boolean) {
         viewModelScope.launch {
             settingsRepository.setNotificationEnabled(enabled)
@@ -174,6 +177,12 @@ class RouletteViewModel(
     fun setNotificationTime(hour: Int, minute: Int) {
         viewModelScope.launch {
             settingsRepository.setNotificationTime(hour, minute)
+        }
+    }
+
+    fun setSearchRadius(radius: Int) {
+        viewModelScope.launch {
+            settingsRepository.setSearchRadius(radius)
         }
     }
 

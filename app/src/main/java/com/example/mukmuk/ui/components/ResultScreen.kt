@@ -263,13 +263,14 @@ private fun RestaurantCard(restaurant: Restaurant, onClick: () -> Unit = {}) {
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = extColors.cardBackground,
+        shadowElevation = 2.dp,
         modifier = Modifier
             .fillMaxWidth()
             .border(1.dp, extColors.cardBorder, RoundedCornerShape(16.dp))
             .clickable { onClick() }
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(18.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -288,6 +289,16 @@ private fun RestaurantCard(restaurant: Restaurant, onClick: () -> Unit = {}) {
                         text = "\uB9AC\uBDF0 ${restaurant.reviews}\uAC1C",
                         color = extColors.textHint,
                         fontSize = 11.sp
+                    )
+                } else if (restaurant.placeUrl.isNotEmpty()) {
+                    Text(
+                        text = "\uD83D\uDCCD \uCE74\uCE74\uC624\uB9F5\uC5D0\uC11C \uBCF4\uAE30",
+                        color = colorScheme.primary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.clickable {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(restaurant.placeUrl)))
+                        }
                     )
                 }
                 if (restaurant.address.isNotEmpty()) {
@@ -345,9 +356,9 @@ private fun RestaurantCard(restaurant: Restaurant, onClick: () -> Unit = {}) {
                     Text(
                         text = "\uC9C0\uB3C4 \uBCF4\uAE30",
                         color = colorScheme.primary,
-                        fontSize = 12.sp,
+                        fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp)
                     )
                 }
             }

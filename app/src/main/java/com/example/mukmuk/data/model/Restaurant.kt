@@ -9,5 +9,8 @@ data class Restaurant(
     val latitude: Double = 37.4979,
     val longitude: Double = 127.0276,
     val priceRange: String = "",
-    val hours: String = ""
+    val hours: String = "",
+    val address: String = "",
+    val phone: String = "",
+    val placeUrl: String = ""
 )

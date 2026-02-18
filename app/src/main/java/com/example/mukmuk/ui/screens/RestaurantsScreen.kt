@@ -21,6 +21,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.mukmuk.data.model.Category
 import com.example.mukmuk.data.model.Restaurant
+import com.example.mukmuk.ui.RestaurantUiState
 import com.example.mukmuk.ui.RestaurantViewModel
 import com.example.mukmuk.ui.components.StarRating
 import com.example.mukmuk.ui.theme.CardBackground
@@ -59,6 +61,7 @@ fun RestaurantsScreen(
 ) {
     val favorites by viewModel.favorites.collectAsState()
     val restaurants = viewModel.filteredRestaurants
+    val apiState = viewModel.apiSearchState
 
     Column(
         modifier = Modifier
@@ -79,7 +82,7 @@ fun RestaurantsScreen(
             modifier = Modifier.padding(horizontal = 20.dp)
         )
         Text(
-            text = "서울 강남구 기준",
+            text = "현재 위치 기준",
             color = TextTertiary,
             fontSize = 12.sp,
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
@@ -121,7 +124,7 @@ fun RestaurantsScreen(
         ) {
             CategoryFilterChip(
                 label = "전체",
-                emoji = "🍽️",
+                emoji = "\uD83C\uDF7D\uFE0F",
                 selected = viewModel.selectedCategory == null && !viewModel.showFavoritesOnly,
                 onClick = {
                     viewModel.updateSelectedCategory(null)
@@ -130,18 +133,18 @@ fun RestaurantsScreen(
             )
             CategoryFilterChip(
                 label = "즐겨찾기",
-                emoji = "♥",
+                emoji = "\u2665",
                 selected = viewModel.showFavoritesOnly,
                 onClick = { viewModel.toggleFavoritesOnly() }
             )
             Category.entries.forEach { category ->
                 val emoji = when (category) {
-                    Category.KOREAN -> "🇰🇷"
-                    Category.JAPANESE -> "🇯🇵"
-                    Category.CHINESE -> "🇨🇳"
-                    Category.WESTERN -> "🍕"
-                    Category.SNACK -> "🍢"
-                    Category.SOUTHEAST_ASIAN -> "🍜"
+                    Category.KOREAN -> "\uD83C\uDDF0\uD83C\uDDF7"
+                    Category.JAPANESE -> "\uD83C\uDDEF\uD83C\uDDF5"
+                    Category.CHINESE -> "\uD83C\uDDE8\uD83C\uDDF3"
+                    Category.WESTERN -> "\uD83C\uDF55"
+                    Category.SNACK -> "\uD83C\uDF62"
+                    Category.SOUTHEAST_ASIAN -> "\uD83C\uDF5C"
                 }
                 CategoryFilterChip(
                     label = category.displayName,
@@ -158,32 +161,79 @@ fun RestaurantsScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        Text(
-            text = "${restaurants.size}개의 맛집",
-            color = TextSecondary,
-            fontSize = 13.sp,
-            modifier = Modifier.padding(horizontal = 20.dp)
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            items(restaurants) { restaurant ->
-                val isFavorite = favorites.any { it.restaurantName == restaurant.name }
-                RestaurantDetailCard(
-                    restaurant = restaurant,
-                    isFavorite = isFavorite,
-                    onFavoriteClick = { viewModel.toggleFavorite(restaurant.name) },
-                    onCardClick = { onRestaurantClick(restaurant.name) }
-                )
+        when (apiState) {
+            is RestaurantUiState.Loading -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator(color = GoldAccent)
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = "맛집 검색 중...",
+                            color = TextTertiary,
+                            fontSize = 14.sp
+                        )
+                    }
+                }
             }
-            item { Spacer(modifier = Modifier.height(80.dp)) }
+            is RestaurantUiState.Error -> {
+                Text(
+                    text = apiState.message,
+                    color = Color(0xFFFF6B6B),
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(horizontal = 20.dp)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "${restaurants.size}개의 맛집",
+                    color = TextSecondary,
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(horizontal = 20.dp)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                RestaurantList(restaurants, favorites, viewModel, onRestaurantClick)
+            }
+            else -> {
+                Text(
+                    text = "${restaurants.size}개의 맛집",
+                    color = TextSecondary,
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(horizontal = 20.dp)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                RestaurantList(restaurants, favorites, viewModel, onRestaurantClick)
+            }
         }
+    }
+}
+
+@Composable
+private fun RestaurantList(
+    restaurants: List<Restaurant>,
+    favorites: List<com.example.mukmuk.data.model.FavoriteRestaurant>,
+    viewModel: RestaurantViewModel,
+    onRestaurantClick: (String) -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        items(restaurants) { restaurant ->
+            val isFavorite = favorites.any { it.restaurantName == restaurant.name }
+            RestaurantDetailCard(
+                restaurant = restaurant,
+                isFavorite = isFavorite,
+                onFavoriteClick = { viewModel.toggleFavorite(restaurant.name) },
+                onCardClick = { onRestaurantClick(restaurant.name) }
+            )
+        }
+        item { Spacer(modifier = Modifier.height(80.dp)) }
     }
 }
 
@@ -250,13 +300,24 @@ private fun RestaurantDetailCard(
                         fontWeight = FontWeight.SemiBold
                     )
                     Spacer(modifier = Modifier.height(4.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        StarRating(rating = restaurant.rating)
-                        Spacer(modifier = Modifier.width(8.dp))
+                    if (restaurant.rating > 0f) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            StarRating(rating = restaurant.rating)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "\uB9AC\uBDF0 ${restaurant.reviews}\uAC1C",
+                                color = TextHint,
+                                fontSize = 11.sp
+                            )
+                        }
+                    }
+                    if (restaurant.address.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "리뷰 ${restaurant.reviews}개",
-                            color = TextHint,
-                            fontSize = 11.sp
+                            text = "\uD83D\uDCCD ${restaurant.address}",
+                            color = TextTertiary,
+                            fontSize = 11.sp,
+                            maxLines = 1
                         )
                     }
                 }
@@ -296,7 +357,7 @@ private fun RestaurantDetailCard(
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Text(
-                                text = if (isFavorite) "♥" else "♡",
+                                text = if (isFavorite) "\u2665" else "\u2661",
                                 color = if (isFavorite) GoldAccent else TextSecondary,
                                 fontSize = 18.sp
                             )
@@ -305,7 +366,7 @@ private fun RestaurantDetailCard(
                 }
             }
 
-            if (restaurant.priceRange.isNotEmpty() || restaurant.hours.isNotEmpty()) {
+            if (restaurant.priceRange.isNotEmpty() || restaurant.hours.isNotEmpty() || restaurant.phone.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(10.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -313,14 +374,21 @@ private fun RestaurantDetailCard(
                 ) {
                     if (restaurant.priceRange.isNotEmpty()) {
                         Text(
-                            text = "💰 ${restaurant.priceRange}",
+                            text = "\uD83D\uDCB0 ${restaurant.priceRange}",
                             color = TextTertiary,
                             fontSize = 12.sp
                         )
                     }
                     if (restaurant.hours.isNotEmpty()) {
                         Text(
-                            text = "🕐 ${restaurant.hours}",
+                            text = "\uD83D\uDD50 ${restaurant.hours}",
+                            color = TextTertiary,
+                            fontSize = 12.sp
+                        )
+                    }
+                    if (restaurant.phone.isNotEmpty()) {
+                        Text(
+                            text = "\uD83D\uDCDE ${restaurant.phone}",
                             color = TextTertiary,
                             fontSize = 12.sp
                         )

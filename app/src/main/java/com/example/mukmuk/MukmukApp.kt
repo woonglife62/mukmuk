@@ -7,10 +7,12 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.mukmuk.di.MukmukViewModelFactory
 import com.example.mukmuk.navigation.Screen
 import com.example.mukmuk.ui.HistoryViewModel
 import com.example.mukmuk.ui.RestaurantViewModel
@@ -25,9 +27,12 @@ import com.example.mukmuk.ui.screens.SettingsScreen
 @Composable
 fun MukmukApp() {
     val navController = rememberNavController()
-    val viewModel: RouletteViewModel = viewModel()
-    val historyViewModel: HistoryViewModel = viewModel()
-    val restaurantViewModel: RestaurantViewModel = viewModel()
+    val app = LocalContext.current.applicationContext as MukmukApplication
+    val factory = MukmukViewModelFactory(app.container)
+
+    val viewModel: RouletteViewModel = viewModel(factory = factory)
+    val historyViewModel: HistoryViewModel = viewModel(factory = factory)
+    val restaurantViewModel: RestaurantViewModel = viewModel(factory = factory)
 
     Scaffold(
         bottomBar = { BottomNavBar(navController = navController) },

@@ -33,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.mukmuk.data.repository.RestaurantRepository
+import com.example.mukmuk.ui.RestaurantUiState
 import com.example.mukmuk.ui.RestaurantViewModel
 import com.example.mukmuk.ui.components.StarRating
 import com.example.mukmuk.ui.theme.CardBackground
@@ -56,8 +57,10 @@ fun RestaurantDetailScreen(
     val favorites by viewModel.favorites.collectAsState()
     val isFavorite = favorites.any { it.restaurantName == restaurantName }
 
-    val restaurant = RestaurantRepository.allRestaurants
-        .find { it.name == restaurantName }
+    // Try API results first, then fallback to local
+    val apiResults = (viewModel.apiSearchState as? RestaurantUiState.Success)?.restaurants
+    val restaurant = apiResults?.find { it.name == restaurantName }
+        ?: RestaurantRepository.allRestaurants.find { it.name == restaurantName }
 
     Column(
         modifier = Modifier
@@ -92,12 +95,12 @@ fun RestaurantDetailScreen(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(text = "←", color = TextPrimary, fontSize = 18.sp)
+                    Text(text = "\u2190", color = TextPrimary, fontSize = 18.sp)
                 }
             }
 
             Text(
-                text = "맛집 상세",
+                text = "\uB9DB\uC9D1 \uC0C1\uC138",
                 color = GoldAccent,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
@@ -117,7 +120,7 @@ fun RestaurantDetailScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = if (isFavorite) "♥" else "♡",
+                        text = if (isFavorite) "\u2665" else "\u2661",
                         color = if (isFavorite) GoldAccent else TextSecondary,
                         fontSize = 18.sp
                     )
@@ -129,7 +132,7 @@ fun RestaurantDetailScreen(
 
         if (restaurant == null) {
             Text(
-                text = "맛집 정보를 찾을 수 없습니다.",
+                text = "\uB9DB\uC9D1 \uC815\uBCF4\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.",
                 color = TextSecondary,
                 modifier = Modifier.padding(horizontal = 20.dp)
             )
@@ -155,21 +158,23 @@ fun RestaurantDetailScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    StarRating(rating = restaurant.rating)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "${restaurant.rating}",
-                        color = GoldAccent,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "리뷰 ${restaurant.reviews}개",
-                        color = TextHint,
-                        fontSize = 12.sp
-                    )
+                if (restaurant.rating > 0f) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        StarRating(rating = restaurant.rating)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "${restaurant.rating}",
+                            color = GoldAccent,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "\uB9AC\uBDF0 ${restaurant.reviews}\uAC1C",
+                            color = TextHint,
+                            fontSize = 12.sp
+                        )
+                    }
                 }
 
                 if (restaurant.category != null) {
@@ -202,30 +207,106 @@ fun RestaurantDetailScreen(
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
                 Text(
-                    text = "상세 정보",
+                    text = "\uC0C1\uC138 \uC815\uBCF4",
                     color = TextPrimary,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold
                 )
                 Spacer(modifier = Modifier.height(12.dp))
 
-                DetailRow(label = "📍 거리", value = restaurant.distance)
+                DetailRow(label = "\uD83D\uDCCD \uAC70\uB9AC", value = restaurant.distance)
+
+                if (restaurant.address.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    DetailRow(label = "\uD83C\uDFE0 \uC8FC\uC18C", value = restaurant.address)
+                }
+
+                if (restaurant.phone.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    DetailRow(label = "\uD83D\uDCDE \uC804\uD654", value = restaurant.phone)
+                }
 
                 if (restaurant.priceRange.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(8.dp))
-                    DetailRow(label = "💰 가격대", value = restaurant.priceRange)
+                    DetailRow(label = "\uD83D\uDCB0 \uAC00\uACA9\uB300", value = restaurant.priceRange)
                 }
 
                 if (restaurant.hours.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(8.dp))
-                    DetailRow(label = "🕐 영업시간", value = restaurant.hours)
+                    DetailRow(label = "\uD83D\uDD50 \uC601\uC5C5\uC2DC\uAC04", value = restaurant.hours)
                 }
             }
         }
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Map button
+        // Phone call button
+        if (restaurant.phone.isNotEmpty()) {
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = GoldAccent.copy(alpha = 0.15f),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .border(1.dp, GoldAccent.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+                    .clickable {
+                        val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${restaurant.phone}"))
+                        context.startActivity(intent)
+                    }
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = "\uD83D\uDCDE", fontSize = 20.sp)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "\uC804\uD654\uAC78\uAE30",
+                        color = GoldAccent,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+
+        // Kakao Map link button
+        if (restaurant.placeUrl.isNotEmpty()) {
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = GoldAccent.copy(alpha = 0.15f),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .border(1.dp, GoldAccent.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+                    .clickable {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(restaurant.placeUrl))
+                        context.startActivity(intent)
+                    }
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = "\uD83D\uDDFA\uFE0F", fontSize = 20.sp)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "\uCE74\uCE74\uC624\uB9F5\uC5D0\uC11C \uBCF4\uAE30",
+                        color = GoldAccent,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+
+        // Map button (geo intent fallback)
         Surface(
             shape = RoundedCornerShape(16.dp),
             color = GoldAccent.copy(alpha = 0.15f),
@@ -246,10 +327,10 @@ fun RestaurantDetailScreen(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = "🗺️", fontSize = 20.sp)
+                Text(text = "\uD83D\uDDFA\uFE0F", fontSize = 20.sp)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "지도에서 보기",
+                    text = "\uC9C0\uB3C4\uC5D0\uC11C \uBCF4\uAE30",
                     color = GoldAccent,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold

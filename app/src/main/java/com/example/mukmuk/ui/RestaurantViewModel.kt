@@ -1,24 +1,34 @@
 package com.example.mukmuk.ui
 
-import android.app.Application
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.mukmuk.data.local.AppDatabase
+import com.example.mukmuk.data.local.FavoriteDao
+import com.example.mukmuk.data.location.LocationService
 import com.example.mukmuk.data.model.Category
 import com.example.mukmuk.data.model.FavoriteRestaurant
 import com.example.mukmuk.data.model.Restaurant
+import com.example.mukmuk.data.repository.RemoteRestaurantRepository
 import com.example.mukmuk.data.repository.RestaurantRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-class RestaurantViewModel(application: Application) : AndroidViewModel(application) {
+sealed class RestaurantUiState {
+    data object Idle : RestaurantUiState()
+    data object Loading : RestaurantUiState()
+    data class Success(val restaurants: List<Restaurant>) : RestaurantUiState()
+    data class Error(val message: String) : RestaurantUiState()
+}
 
-    private val favoriteDao = AppDatabase.getInstance(application).favoriteDao()
+class RestaurantViewModel(
+    private val favoriteDao: FavoriteDao,
+    private val locationService: LocationService,
+    private val remoteRestaurantRepository: RemoteRestaurantRepository
+) : ViewModel() {
 
     var searchQuery by mutableStateOf("")
         private set
@@ -29,12 +39,17 @@ class RestaurantViewModel(application: Application) : AndroidViewModel(applicati
     var showFavoritesOnly by mutableStateOf(false)
         private set
 
+    var apiSearchState by mutableStateOf<RestaurantUiState>(RestaurantUiState.Idle)
+        private set
+
     val favorites: StateFlow<List<FavoriteRestaurant>> = favoriteDao.getAllFavorites()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val filteredRestaurants: List<Restaurant>
         get() {
+            val apiResults = (apiSearchState as? RestaurantUiState.Success)?.restaurants
             val base = when {
+                apiResults != null -> apiResults
                 searchQuery.isNotBlank() -> RestaurantRepository.searchRestaurants(searchQuery)
                 else -> RestaurantRepository.getRestaurantsByCategory(selectedCategory)
             }
@@ -48,11 +63,17 @@ class RestaurantViewModel(application: Application) : AndroidViewModel(applicati
 
     fun updateSearchQuery(query: String) {
         searchQuery = query
+        if (query.isNotBlank()) {
+            searchFromApi(query)
+        } else {
+            apiSearchState = RestaurantUiState.Idle
+        }
     }
 
     fun updateSelectedCategory(category: Category?) {
         selectedCategory = category
         if (category != null) showFavoritesOnly = false
+        apiSearchState = RestaurantUiState.Idle
     }
 
     fun toggleFavoritesOnly() {
@@ -73,5 +94,20 @@ class RestaurantViewModel(application: Application) : AndroidViewModel(applicati
 
     fun isFavorite(restaurantName: String): Boolean {
         return favorites.value.any { it.restaurantName == restaurantName }
+    }
+
+    private fun searchFromApi(query: String) {
+        viewModelScope.launch {
+            apiSearchState = RestaurantUiState.Loading
+            try {
+                val location = locationService.getCurrentLocation()
+                val results = remoteRestaurantRepository.searchNearby(
+                    query, location.latitude, location.longitude
+                )
+                apiSearchState = RestaurantUiState.Success(results)
+            } catch (_: Exception) {
+                apiSearchState = RestaurantUiState.Error("검색에 실패했습니다")
+            }
+        }
     }
 }

@@ -1,18 +1,19 @@
 package com.example.mukmuk.ui
 
-import android.app.Application
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.mukmuk.data.local.AppDatabase
+import com.example.mukmuk.data.location.LocationService
 import com.example.mukmuk.data.model.Category
 import com.example.mukmuk.data.model.HistoryEntry
 import com.example.mukmuk.data.model.Menu
+import com.example.mukmuk.data.model.Restaurant
 import com.example.mukmuk.data.repository.HistoryRepository
 import com.example.mukmuk.data.repository.MenuRepository
+import com.example.mukmuk.data.repository.RemoteRestaurantRepository
 import com.example.mukmuk.data.repository.RestaurantRepository
 import com.example.mukmuk.data.repository.SettingsRepository
 import kotlinx.coroutines.flow.Flow
@@ -20,15 +21,12 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-class RouletteViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val historyRepository: HistoryRepository
-    val settingsRepository = SettingsRepository(application)
-
-    init {
-        val dao = AppDatabase.getInstance(application).historyDao()
-        historyRepository = HistoryRepository(dao)
-    }
+class RouletteViewModel(
+    private val historyRepository: HistoryRepository,
+    val settingsRepository: SettingsRepository,
+    private val locationService: LocationService,
+    private val remoteRestaurantRepository: RemoteRestaurantRepository
+) : ViewModel() {
 
     val hapticEnabled = settingsRepository.hapticEnabled
         .stateIn(viewModelScope, SharingStarted.Eagerly, true)
@@ -64,8 +62,11 @@ class RouletteViewModel(application: Application) : AndroidViewModel(application
     val filteredMenus: List<Menu>
         get() = MenuRepository.getFilteredMenus(selectedCategories)
 
-    val restaurants
-        get() = selectedMenu?.let { RestaurantRepository.getRestaurants(it.name) } ?: emptyList()
+    var restaurants by mutableStateOf<List<Restaurant>>(emptyList())
+        private set
+
+    var isLoadingRestaurants by mutableStateOf(false)
+        private set
 
     fun toggleCategory(category: Category) {
         selectedCategories = if (category in selectedCategories) {
@@ -98,6 +99,7 @@ class RouletteViewModel(application: Application) : AndroidViewModel(application
         val index = ((360f - normalized + arc / 2f) % 360f / arc).toInt() % menus.size
         selectedMenu = menus[index]
         isSpinning = false
+        loadNearbyRestaurants(menus[index].name)
     }
 
     fun showResultScreen() {
@@ -107,6 +109,7 @@ class RouletteViewModel(application: Application) : AndroidViewModel(application
     fun resetToWheel() {
         showResult = false
         selectedMenu = null
+        restaurants = emptyList()
     }
 
     fun confirmSelection() {
@@ -117,6 +120,7 @@ class RouletteViewModel(application: Application) : AndroidViewModel(application
             showConfirmSnackbar = true
             showResult = false
             selectedMenu = null
+            restaurants = emptyList()
         }
     }
 
@@ -149,6 +153,43 @@ class RouletteViewModel(application: Application) : AndroidViewModel(application
     fun setDarkTheme(enabled: Boolean) {
         viewModelScope.launch {
             settingsRepository.setDarkTheme(enabled)
+        }
+    }
+
+    val notificationEnabled = settingsRepository.notificationEnabled
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    val notificationHour = settingsRepository.notificationHour
+        .stateIn(viewModelScope, SharingStarted.Eagerly, 12)
+
+    val notificationMinute = settingsRepository.notificationMinute
+        .stateIn(viewModelScope, SharingStarted.Eagerly, 0)
+
+    fun setNotificationEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.setNotificationEnabled(enabled)
+        }
+    }
+
+    fun setNotificationTime(hour: Int, minute: Int) {
+        viewModelScope.launch {
+            settingsRepository.setNotificationTime(hour, minute)
+        }
+    }
+
+    private fun loadNearbyRestaurants(menuName: String) {
+        viewModelScope.launch {
+            isLoadingRestaurants = true
+            try {
+                val location = locationService.getCurrentLocation()
+                restaurants = remoteRestaurantRepository.searchNearby(
+                    menuName, location.latitude, location.longitude
+                )
+            } catch (_: Exception) {
+                restaurants = RestaurantRepository.getRestaurants(menuName)
+            } finally {
+                isLoadingRestaurants = false
+            }
         }
     }
 }

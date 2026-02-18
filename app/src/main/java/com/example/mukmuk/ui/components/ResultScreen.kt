@@ -17,9 +17,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -41,11 +43,13 @@ import com.example.mukmuk.ui.theme.CardBorder
 import com.example.mukmuk.ui.theme.DarkBackground
 import com.example.mukmuk.ui.theme.GoldAccent
 import com.example.mukmuk.ui.theme.TextHint
+import com.example.mukmuk.ui.theme.TextTertiary
 
 @Composable
 fun ResultScreen(
     menu: Menu,
     restaurants: List<Restaurant>,
+    isLoading: Boolean = false,
     onRetry: () -> Unit,
     onConfirm: () -> Unit,
     modifier: Modifier = Modifier
@@ -119,7 +123,7 @@ fun ResultScreen(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "\uC11C\uC6B8 \uAC15\uB0A8\uAD6C \uAE30\uC900",
+                    text = "\uD604\uC7AC \uC704\uCE58 \uAE30\uC900",
                     color = TextHint,
                     fontSize = 12.sp
                 )
@@ -127,10 +131,32 @@ fun ResultScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Restaurant list
-            restaurants.forEach { restaurant ->
-                RestaurantCard(restaurant = restaurant)
-                Spacer(modifier = Modifier.height(10.dp))
+            if (isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator(
+                            color = GoldAccent,
+                            modifier = Modifier.size(32.dp)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "\uB9DB\uC9D1 \uAC80\uC0C9 \uC911...",
+                            color = TextTertiary,
+                            fontSize = 13.sp
+                        )
+                    }
+                }
+            } else {
+                // Restaurant list
+                restaurants.forEach { restaurant ->
+                    RestaurantCard(restaurant = restaurant)
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -179,12 +205,12 @@ fun ResultScreen(
             Spacer(modifier = Modifier.height(10.dp))
             OutlinedButton(
                 onClick = {
-                    val shareText = "오늘의 메뉴는 ${menu.emoji} ${menu.name}! 🎯 #먹먹 #mukmuk"
+                    val shareText = "\uC624\uB298\uC758 \uBA54\uB274\uB294 ${menu.emoji} ${menu.name}! \uD83C\uDFAF #\uBA39\uBA39 #mukmuk"
                     val shareIntent = Intent(Intent.ACTION_SEND).apply {
                         type = "text/plain"
                         putExtra(Intent.EXTRA_TEXT, shareText)
                     }
-                    context.startActivity(Intent.createChooser(shareIntent, "공유하기"))
+                    context.startActivity(Intent.createChooser(shareIntent, "\uACF5\uC720\uD558\uAE30"))
                 },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
@@ -195,7 +221,7 @@ fun ResultScreen(
                 )
             ) {
                 Text(
-                    text = "📤 공유하기",
+                    text = "\uD83D\uDCE4 \uACF5\uC720\uD558\uAE30",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.padding(vertical = 6.dp)
@@ -230,13 +256,32 @@ private fun RestaurantCard(restaurant: Restaurant) {
                     fontWeight = FontWeight.SemiBold
                 )
                 Spacer(modifier = Modifier.height(4.dp))
-                StarRating(rating = restaurant.rating)
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = "\uB9AC\uBDF0 ${restaurant.reviews}\uAC1C",
-                    color = TextHint,
-                    fontSize = 11.sp
-                )
+                if (restaurant.rating > 0f) {
+                    StarRating(rating = restaurant.rating)
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "\uB9AC\uBDF0 ${restaurant.reviews}\uAC1C",
+                        color = TextHint,
+                        fontSize = 11.sp
+                    )
+                }
+                if (restaurant.address.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "\uD83D\uDCCD ${restaurant.address}",
+                        color = TextTertiary,
+                        fontSize = 11.sp,
+                        maxLines = 1
+                    )
+                }
+                if (restaurant.phone.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "\uD83D\uDCDE ${restaurant.phone}",
+                        color = TextTertiary,
+                        fontSize = 11.sp
+                    )
+                }
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(
@@ -250,18 +295,21 @@ private fun RestaurantCard(restaurant: Restaurant) {
                     shape = RoundedCornerShape(8.dp),
                     color = GoldAccent.copy(alpha = 0.15f),
                     modifier = Modifier.clickable {
-                        val geoUri = Uri.parse(
-                            "geo:${restaurant.latitude},${restaurant.longitude}?q=${Uri.encode(restaurant.name)}"
-                        )
-                        val mapIntent = Intent(Intent.ACTION_VIEW, geoUri)
-                        if (mapIntent.resolveActivity(context.packageManager) != null) {
-                            context.startActivity(mapIntent)
+                        if (restaurant.placeUrl.isNotEmpty()) {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(restaurant.placeUrl)))
                         } else {
-                            // Fallback to web browser
-                            val webUri = Uri.parse(
-                                "https://maps.google.com/?q=${Uri.encode(restaurant.name)}&ll=${restaurant.latitude},${restaurant.longitude}"
+                            val geoUri = Uri.parse(
+                                "geo:${restaurant.latitude},${restaurant.longitude}?q=${Uri.encode(restaurant.name)}"
                             )
-                            context.startActivity(Intent(Intent.ACTION_VIEW, webUri))
+                            val mapIntent = Intent(Intent.ACTION_VIEW, geoUri)
+                            if (mapIntent.resolveActivity(context.packageManager) != null) {
+                                context.startActivity(mapIntent)
+                            } else {
+                                val webUri = Uri.parse(
+                                    "https://maps.google.com/?q=${Uri.encode(restaurant.name)}&ll=${restaurant.latitude},${restaurant.longitude}"
+                                )
+                                context.startActivity(Intent(Intent.ACTION_VIEW, webUri))
+                            }
                         }
                     }
                 ) {

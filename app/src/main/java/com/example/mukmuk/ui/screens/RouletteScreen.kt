@@ -251,6 +251,7 @@ fun RouletteScreen(
                 ResultScreen(
                     menu = menu,
                     restaurants = viewModel.restaurants,
+                    isLoading = viewModel.isLoadingRestaurants,
                     onRetry = { viewModel.resetToWheel() },
                     onConfirm = { viewModel.confirmSelection() }
                 )

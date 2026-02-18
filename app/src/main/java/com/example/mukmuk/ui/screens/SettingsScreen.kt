@@ -20,6 +20,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import android.app.TimePickerDialog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -31,9 +32,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.mukmuk.notification.NotificationScheduler
 import com.example.mukmuk.ui.RouletteViewModel
 import com.example.mukmuk.ui.theme.DarkBackground
 import com.example.mukmuk.ui.theme.DarkSurface
@@ -48,7 +51,11 @@ fun SettingsScreen(viewModel: RouletteViewModel) {
     val hapticEnabled by viewModel.hapticEnabled.collectAsState()
     val soundEnabled by viewModel.soundEnabled.collectAsState()
     val darkTheme by viewModel.darkTheme.collectAsState()
+    val notificationEnabled by viewModel.notificationEnabled.collectAsState()
+    val notificationHour by viewModel.notificationHour.collectAsState()
+    val notificationMinute by viewModel.notificationMinute.collectAsState()
     var showDeleteDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     Column(
         modifier = Modifier
@@ -102,6 +109,50 @@ fun SettingsScreen(viewModel: RouletteViewModel) {
             subtitle = "어두운 테마 사용 (라이트 모드 준비 중)",
             checked = darkTheme,
             onCheckedChange = { viewModel.setDarkTheme(it) }
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Notification section
+        SectionHeader(title = "알림 설정")
+        Spacer(modifier = Modifier.height(8.dp))
+
+        SettingsToggleItem(
+            icon = "🔔",
+            title = "점심 알림",
+            subtitle = "매일 설정한 시간에 메뉴 추천 알림",
+            checked = notificationEnabled,
+            onCheckedChange = { enabled ->
+                viewModel.setNotificationEnabled(enabled)
+                if (enabled) {
+                    NotificationScheduler.scheduleLunchReminder(context, notificationHour, notificationMinute)
+                } else {
+                    NotificationScheduler.cancelLunchReminder(context)
+                }
+            }
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        SettingsActionItem(
+            icon = "🕐",
+            title = "알림 시간",
+            subtitle = String.format("%02d:%02d", notificationHour, notificationMinute),
+            actionColor = GoldAccent,
+            onClick = {
+                TimePickerDialog(
+                    context,
+                    { _, selectedHour, selectedMinute ->
+                        viewModel.setNotificationTime(selectedHour, selectedMinute)
+                        if (notificationEnabled) {
+                            NotificationScheduler.scheduleLunchReminder(context, selectedHour, selectedMinute)
+                        }
+                    },
+                    notificationHour,
+                    notificationMinute,
+                    true
+                ).show()
+            }
         )
 
         Spacer(modifier = Modifier.height(24.dp))

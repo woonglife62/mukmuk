@@ -31,8 +31,8 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.mukmuk.navigation.Screen
-import com.example.mukmuk.ui.theme.DarkBackground
-import com.example.mukmuk.ui.theme.GoldAccent
+import androidx.compose.material3.MaterialTheme
+import com.example.mukmuk.ui.theme.mukmukColors
 
 @Composable
 fun BottomNavBar(
@@ -47,7 +47,7 @@ fun BottomNavBar(
             .fillMaxWidth()
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(Color.Transparent, DarkBackground),
+                    colors = listOf(Color.Transparent, MaterialTheme.colorScheme.background),
                     startY = 0f,
                     endY = 40f
                 )
@@ -88,7 +88,7 @@ fun BottomNavBar(
                     text = screen.title,
                     fontSize = 10.sp,
                     fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
-                    color = if (isActive) GoldAccent else Color.White.copy(alpha = 0.4f),
+                    color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.mukmukColors.textTertiary,
                     modifier = Modifier.padding(top = 2.dp)
                 )
                 if (isActive) {
@@ -96,7 +96,7 @@ fun BottomNavBar(
                     Box(
                         modifier = Modifier
                             .size(4.dp)
-                            .background(GoldAccent, CircleShape)
+                            .background(MaterialTheme.colorScheme.primary, CircleShape)
                     )
                 }
             }

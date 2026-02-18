@@ -24,7 +24,7 @@ object NotificationHelper {
             ).apply {
                 description = "점심시간 메뉴 추천 알림"
             }
-            val manager = context.getSystemService(NotificationManager::class.java)
+            val manager = context.getSystemService(NotificationManager::class.java) ?: return
             manager.createNotificationChannel(channel)
         }
     }
@@ -47,7 +47,7 @@ object NotificationHelper {
             .setAutoCancel(true)
             .build()
 
-        val manager = context.getSystemService(NotificationManager::class.java)
+        val manager = context.getSystemService(NotificationManager::class.java) ?: return
         manager.notify(NOTIFICATION_ID, notification)
     }
 }

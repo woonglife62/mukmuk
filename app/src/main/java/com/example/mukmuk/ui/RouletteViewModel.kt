@@ -91,7 +91,7 @@ class RouletteViewModel(
         }
     }
 
-    fun onSpinComplete(finalAngle: Float) {
+    fun onSpinComplete(finalAngle: Float, hasLocationPermission: Boolean = true) {
         val menus = filteredMenus
         if (menus.isEmpty()) return
         val normalized = ((finalAngle % 360f) + 360f) % 360f
@@ -99,7 +99,7 @@ class RouletteViewModel(
         val index = ((360f - normalized + arc / 2f) % 360f / arc).toInt() % menus.size
         selectedMenu = menus[index]
         isSpinning = false
-        loadNearbyRestaurants(menus[index].name)
+        loadNearbyRestaurants(menus[index].name, hasLocationPermission)
     }
 
     fun showResultScreen() {
@@ -177,10 +177,14 @@ class RouletteViewModel(
         }
     }
 
-    private fun loadNearbyRestaurants(menuName: String) {
+    private fun loadNearbyRestaurants(menuName: String, hasLocationPermission: Boolean = true) {
         viewModelScope.launch {
             isLoadingRestaurants = true
             try {
+                if (!hasLocationPermission) {
+                    restaurants = RestaurantRepository.getRestaurants(menuName)
+                    return@launch
+                }
                 val location = locationService.getCurrentLocation()
                 restaurants = remoteRestaurantRepository.searchNearby(
                     menuName, location.latitude, location.longitude

@@ -27,6 +27,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,6 +37,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,11 +46,15 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import kotlinx.coroutines.launch
+import com.example.mukmuk.R
 import com.example.mukmuk.data.model.Category
 import com.example.mukmuk.data.model.Restaurant
 import com.example.mukmuk.ui.RestaurantUiState
@@ -67,6 +74,11 @@ fun RestaurantsScreen(
     val favorites by viewModel.favorites.collectAsState()
     val restaurants = viewModel.filteredRestaurants
     val apiState = viewModel.apiSearchState
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val favoriteAddedMsg = stringResource(R.string.restaurants_favorite_added)
+    val favoriteRemovedMsg = stringResource(R.string.restaurants_favorite_removed)
 
     var showLocationDialog by remember { mutableStateOf(false) }
     var locationPermissionGranted by remember {
@@ -107,158 +119,186 @@ fun RestaurantsScreen(
         )
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.linearGradient(
-                    colors = listOf(colorScheme.background, colorScheme.surface, colorScheme.surfaceVariant)
+    val handleFavoriteToggle: (String) -> Unit = { name ->
+        viewModel.toggleFavorite(name) { added ->
+            scope.launch {
+                snackbarHostState.currentSnackbarData?.dismiss()
+                snackbarHostState.showSnackbar(
+                    if (added) favoriteAddedMsg else favoriteRemovedMsg
                 )
-            )
-    ) {
-        Spacer(modifier = Modifier.height(20.dp))
-
-        Text(
-            text = "근처 맛집",
-            color = colorScheme.primary,
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = 20.dp)
-        )
-        Text(
-            text = when (apiState) {
-                is RestaurantUiState.Success -> "현재 위치 기준"
-                is RestaurantUiState.Error -> "검색 실패 - 추천 맛집 표시 중"
-                else -> "추천 맛집"
-            },
-            color = when (apiState) {
-                is RestaurantUiState.Error -> extColors.error
-                else -> extColors.textTertiary
-            },
-            fontSize = 12.sp,
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Search bar
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(colorScheme.surface)
-                .border(1.dp, extColors.chipBorder, RoundedCornerShape(12.dp))
-                .padding(horizontal = 16.dp, vertical = 12.dp)
-        ) {
-            if (viewModel.searchQuery.isEmpty()) {
-                Text(text = "맛집 검색...", color = extColors.textHint, fontSize = 14.sp)
             }
-            BasicTextField(
-                value = viewModel.searchQuery,
-                onValueChange = { viewModel.updateSearchQuery(it) },
-                textStyle = TextStyle(color = colorScheme.onSurface, fontSize = 14.sp),
-                cursorBrush = SolidColor(colorScheme.primary),
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
         }
+    }
 
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Category chips + favorites filter
-        Row(
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
             modifier = Modifier
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                .fillMaxSize()
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(colorScheme.background, colorScheme.surface, colorScheme.surfaceVariant)
+                    )
+                )
         ) {
-            CategoryFilterChip(
-                label = "전체",
-                emoji = "\uD83C\uDF7D\uFE0F",
-                selected = viewModel.selectedCategory == null && !viewModel.showFavoritesOnly,
-                onClick = {
-                    viewModel.updateSelectedCategory(null)
-                    if (viewModel.showFavoritesOnly) viewModel.toggleFavoritesOnly()
-                }
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Text(
+                text = "근처 맛집",
+                color = colorScheme.primary,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(horizontal = 20.dp)
             )
-            CategoryFilterChip(
-                label = "즐겨찾기",
-                emoji = "\u2665",
-                selected = viewModel.showFavoritesOnly,
-                onClick = { viewModel.toggleFavoritesOnly() }
+            Text(
+                text = when (apiState) {
+                    is RestaurantUiState.Success -> "현재 위치 기준"
+                    is RestaurantUiState.Error -> "검색 실패 - 추천 맛집 표시 중"
+                    else -> "추천 맛집"
+                },
+                color = when (apiState) {
+                    is RestaurantUiState.Error -> extColors.error
+                    else -> extColors.textTertiary
+                },
+                fontSize = 12.sp,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
             )
-            Category.entries.forEach { category ->
-                val emoji = when (category) {
-                    Category.KOREAN -> "\uD83C\uDDF0\uD83C\uDDF7"
-                    Category.JAPANESE -> "\uD83C\uDDEF\uD83C\uDDF5"
-                    Category.CHINESE -> "\uD83C\uDDE8\uD83C\uDDF3"
-                    Category.WESTERN -> "\uD83C\uDF55"
-                    Category.SNACK -> "\uD83C\uDF62"
-                    Category.SOUTHEAST_ASIAN -> "\uD83C\uDF5C"
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Search bar
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(colorScheme.surface)
+                    .border(1.dp, extColors.chipBorder, RoundedCornerShape(12.dp))
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+            ) {
+                if (viewModel.searchQuery.isEmpty()) {
+                    Text(text = "맛집 검색...", color = extColors.textHint, fontSize = 14.sp)
                 }
+                BasicTextField(
+                    value = viewModel.searchQuery,
+                    onValueChange = { viewModel.updateSearchQuery(it) },
+                    textStyle = TextStyle(color = colorScheme.onSurface, fontSize = 14.sp),
+                    cursorBrush = SolidColor(colorScheme.primary),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Category chips + favorites filter
+            Row(
+                modifier = Modifier
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 CategoryFilterChip(
-                    label = category.displayName,
-                    emoji = emoji,
-                    selected = viewModel.selectedCategory == category,
+                    label = "전체",
+                    emoji = "\uD83C\uDF7D\uFE0F",
+                    selected = viewModel.selectedCategory == null && !viewModel.showFavoritesOnly,
                     onClick = {
-                        viewModel.updateSelectedCategory(
-                            if (viewModel.selectedCategory == category) null else category
-                        )
+                        viewModel.updateSelectedCategory(null)
+                        if (viewModel.showFavoritesOnly) viewModel.toggleFavoritesOnly()
                     }
                 )
+                CategoryFilterChip(
+                    label = "즐겨찾기",
+                    emoji = "\u2665",
+                    selected = viewModel.showFavoritesOnly,
+                    onClick = { viewModel.toggleFavoritesOnly() }
+                )
+                Category.entries.forEach { category ->
+                    val emoji = when (category) {
+                        Category.KOREAN -> "\uD83C\uDDF0\uD83C\uDDF7"
+                        Category.JAPANESE -> "\uD83C\uDDEF\uD83C\uDDF5"
+                        Category.CHINESE -> "\uD83C\uDDE8\uD83C\uDDF3"
+                        Category.WESTERN -> "\uD83C\uDF55"
+                        Category.SNACK -> "\uD83C\uDF62"
+                        Category.SOUTHEAST_ASIAN -> "\uD83C\uDF5C"
+                    }
+                    CategoryFilterChip(
+                        label = category.displayName,
+                        emoji = emoji,
+                        selected = viewModel.selectedCategory == category,
+                        onClick = {
+                            viewModel.updateSelectedCategory(
+                                if (viewModel.selectedCategory == category) null else category
+                            )
+                        }
+                    )
+                }
             }
-        }
 
-        Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-        when (apiState) {
-            is RestaurantUiState.Loading -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 32.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator(color = colorScheme.primary)
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = "맛집 검색 중...",
-                            color = extColors.textTertiary,
-                            fontSize = 14.sp
+            when (apiState) {
+                is RestaurantUiState.Loading -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator(color = colorScheme.primary)
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text(
+                                text = "맛집 검색 중...",
+                                color = extColors.textTertiary,
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
+                }
+                is RestaurantUiState.Error -> {
+                    Text(
+                        text = apiState.message,
+                        color = extColors.error,
+                        fontSize = 13.sp,
+                        modifier = Modifier.padding(horizontal = 20.dp)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "${restaurants.size}개의 맛집",
+                        color = extColors.textSecondary,
+                        fontSize = 13.sp,
+                        modifier = Modifier.padding(horizontal = 20.dp)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    RestaurantList(restaurants, favorites, handleFavoriteToggle, onRestaurantClick)
+                }
+                else -> {
+                    if (restaurants.isEmpty()) {
+                        EmptyRestaurantContent(
+                            showFavoritesOnly = viewModel.showFavoritesOnly,
+                            searchQuery = viewModel.searchQuery,
+                            selectedCategory = viewModel.selectedCategory,
+                            modifier = Modifier.weight(1f)
                         )
+                    } else {
+                        Text(
+                            text = "${restaurants.size}\uAC1C\uC758 \uB9DB\uC9D1",
+                            color = extColors.textSecondary,
+                            fontSize = 13.sp,
+                            modifier = Modifier.padding(horizontal = 20.dp)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        RestaurantList(restaurants, favorites, handleFavoriteToggle, onRestaurantClick)
                     }
                 }
             }
-            is RestaurantUiState.Error -> {
-                Text(
-                    text = apiState.message,
-                    color = extColors.error,
-                    fontSize = 13.sp,
-                    modifier = Modifier.padding(horizontal = 20.dp)
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "${restaurants.size}개의 맛집",
-                    color = extColors.textSecondary,
-                    fontSize = 13.sp,
-                    modifier = Modifier.padding(horizontal = 20.dp)
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                RestaurantList(restaurants, favorites, viewModel, onRestaurantClick)
-            }
-            else -> {
-                Text(
-                    text = "${restaurants.size}개의 맛집",
-                    color = extColors.textSecondary,
-                    fontSize = 13.sp,
-                    modifier = Modifier.padding(horizontal = 20.dp)
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                RestaurantList(restaurants, favorites, viewModel, onRestaurantClick)
-            }
         }
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 80.dp)
+        )
     }
 }
 
@@ -266,7 +306,7 @@ fun RestaurantsScreen(
 private fun RestaurantList(
     restaurants: List<Restaurant>,
     favorites: List<com.example.mukmuk.data.model.FavoriteRestaurant>,
-    viewModel: RestaurantViewModel,
+    onFavoriteToggle: (String) -> Unit,
     onRestaurantClick: (String) -> Unit
 ) {
     LazyColumn(
@@ -280,11 +320,68 @@ private fun RestaurantList(
             RestaurantDetailCard(
                 restaurant = restaurant,
                 isFavorite = isFavorite,
-                onFavoriteClick = { viewModel.toggleFavorite(restaurant.name) },
+                onFavoriteClick = { onFavoriteToggle(restaurant.name) },
                 onCardClick = { onRestaurantClick(restaurant.name) }
             )
         }
         item { Spacer(modifier = Modifier.height(80.dp)) }
+    }
+}
+
+@Composable
+private fun EmptyRestaurantContent(
+    showFavoritesOnly: Boolean,
+    searchQuery: String,
+    selectedCategory: Category?,
+    modifier: Modifier = Modifier
+) {
+    val extColors = MaterialTheme.mukmukColors
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 48.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            val (emoji, title, subtitle) = when {
+                showFavoritesOnly -> Triple(
+                    "\u2661",
+                    stringResource(R.string.restaurants_empty_favorites),
+                    stringResource(R.string.restaurants_empty_favorites_subtitle)
+                )
+                searchQuery.isNotBlank() -> Triple(
+                    "\uD83D\uDD0D",
+                    stringResource(R.string.restaurants_empty_search),
+                    stringResource(R.string.restaurants_empty_search_subtitle)
+                )
+                selectedCategory != null -> Triple(
+                    "\uD83C\uDF7D\uFE0F",
+                    stringResource(R.string.restaurants_empty_category),
+                    stringResource(R.string.restaurants_empty_category_subtitle)
+                )
+                else -> Triple(
+                    "\uD83C\uDF7D\uFE0F",
+                    stringResource(R.string.restaurants_empty_search),
+                    stringResource(R.string.restaurants_empty_search_subtitle)
+                )
+            }
+            Text(text = emoji, fontSize = 48.sp)
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = title,
+                color = MaterialTheme.colorScheme.primary,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = subtitle,
+                color = extColors.textTertiary,
+                fontSize = 14.sp,
+                textAlign = TextAlign.Center
+            )
+        }
     }
 }
 

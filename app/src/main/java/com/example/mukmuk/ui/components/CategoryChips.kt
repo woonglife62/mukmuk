@@ -9,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -16,10 +17,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.mukmuk.data.model.Category
-import com.example.mukmuk.ui.theme.CardBackground
-import com.example.mukmuk.ui.theme.ChipBorder
 import com.example.mukmuk.ui.theme.GoldAccent
-import com.example.mukmuk.ui.theme.TextSecondary
+import com.example.mukmuk.ui.theme.mukmukColors
 
 @Composable
 fun CategoryChips(
@@ -29,6 +28,7 @@ fun CategoryChips(
     onClearAll: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val extColors = MaterialTheme.mukmukColors
     Row(
         modifier = modifier
             .horizontalScroll(rememberScrollState())
@@ -49,11 +49,11 @@ fun CategoryChips(
             shape = RoundedCornerShape(20.dp),
             border = BorderStroke(
                 1.5.dp,
-                if (selectedCategories.isEmpty()) GoldAccent else ChipBorder
+                if (selectedCategories.isEmpty()) GoldAccent else extColors.chipBorder
             ),
             colors = FilterChipDefaults.filterChipColors(
-                containerColor = CardBackground,
-                labelColor = TextSecondary,
+                containerColor = extColors.cardBackground,
+                labelColor = extColors.textSecondary,
                 selectedContainerColor = GoldAccent.copy(alpha = 0.15f),
                 selectedLabelColor = GoldAccent
             )
@@ -74,11 +74,11 @@ fun CategoryChips(
                 shape = RoundedCornerShape(20.dp),
                 border = BorderStroke(
                     1.5.dp,
-                    if (isSelected) GoldAccent else ChipBorder
+                    if (isSelected) GoldAccent else extColors.chipBorder
                 ),
                 colors = FilterChipDefaults.filterChipColors(
-                    containerColor = CardBackground,
-                    labelColor = TextSecondary,
+                    containerColor = extColors.cardBackground,
+                    labelColor = extColors.textSecondary,
                     selectedContainerColor = GoldAccent.copy(alpha = 0.15f),
                     selectedLabelColor = GoldAccent
                 )

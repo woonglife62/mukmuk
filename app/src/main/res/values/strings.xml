@@ -74,6 +74,14 @@
     <string name="restaurants_search_hint">맛집 검색…</string>
     <string name="restaurants_count">%d개의 맛집</string>
     <string name="restaurants_review_count">리뷰 %d개</string>
+    <string name="restaurants_empty_search">검색 결과가 없습니다</string>
+    <string name="restaurants_empty_search_subtitle">다른 키워드로 검색해보세요</string>
+    <string name="restaurants_empty_favorites">즐겨찾기한 맛집이 없습니다</string>
+    <string name="restaurants_empty_favorites_subtitle">맛집 목록에서 하트를 눌러 추가해보세요</string>
+    <string name="restaurants_empty_category">해당 카테고리의 맛집이 없습니다</string>
+    <string name="restaurants_empty_category_subtitle">다른 카테고리를 선택해보세요</string>
+    <string name="restaurants_favorite_added">즐겨찾기에 추가되었습니다</string>
+    <string name="restaurants_favorite_removed">즐겨찾기에서 삭제되었습니다</string>
 
     <!-- Result Screen -->
     <string name="result_selected_menu_description">선택된 메뉴: %1$s, %2$s</string>

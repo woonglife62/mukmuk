@@ -2,7 +2,9 @@ package com.example.mukmuk.ui.screens
 
 import android.content.Intent
 import android.net.Uri
+import android.webkit.WebResourceRequest
 import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -24,18 +26,24 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.example.mukmuk.data.repository.RestaurantRepository
 import com.example.mukmuk.ui.RestaurantUiState
 import com.example.mukmuk.ui.RestaurantViewModel
@@ -196,6 +204,29 @@ fun RestaurantDetailScreen(
         // Embedded map (only for restaurants with real coordinates, not default hardcoded ones)
         val isHardcodedLocation = restaurant.latitude == 37.4979 && restaurant.longitude == 127.0276
         if (!isHardcodedLocation) {
+            val lifecycleOwner = LocalLifecycleOwner.current
+            val webViewState = remember { mutableStateOf<WebView?>(null) }
+
+            DisposableEffect(lifecycleOwner) {
+                val observer = LifecycleEventObserver { _, event ->
+                    when (event) {
+                        Lifecycle.Event.ON_PAUSE -> webViewState.value?.onPause()
+                        Lifecycle.Event.ON_RESUME -> webViewState.value?.onResume()
+                        Lifecycle.Event.ON_DESTROY -> {
+                            webViewState.value?.stopLoading()
+                            webViewState.value?.destroy()
+                        }
+                        else -> {}
+                    }
+                }
+                lifecycleOwner.lifecycle.addObserver(observer)
+                onDispose {
+                    lifecycleOwner.lifecycle.removeObserver(observer)
+                    webViewState.value?.stopLoading()
+                    webViewState.value?.destroy()
+                }
+            }
+
             Surface(
                 shape = RoundedCornerShape(16.dp),
                 color = extColors.cardBackground,
@@ -220,8 +251,16 @@ fun RestaurantDetailScreen(
                     AndroidView(
                         factory = { ctx ->
                             WebView(ctx).apply {
+                                webViewClient = object : WebViewClient() {
+                                    override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+                                        val url = request?.url?.toString() ?: return true
+                                        val allowedHosts = listOf("openstreetmap.org", "www.openstreetmap.org", "tile.openstreetmap.org")
+                                        return !allowedHosts.any { url.contains(it) }
+                                    }
+                                }
                                 settings.javaScriptEnabled = true
                                 loadUrl(mapUrl)
+                                webViewState.value = this
                             }
                         },
                         modifier = Modifier

@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -48,6 +49,7 @@ fun ResultScreen(
     isLoading: Boolean = false,
     onRetry: () -> Unit,
     onConfirm: () -> Unit,
+    onRestaurantClick: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val colorScheme = MaterialTheme.colorScheme
@@ -151,10 +153,30 @@ fun ResultScreen(
                         )
                     }
                 }
+            } else if (restaurants.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(text = "\uD83C\uDF7D\uFE0F", fontSize = 40.sp)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "\uC8FC\uBCC0\uC5D0 \uAD00\uB828 \uB9DB\uC9D1\uC744 \uCC3E\uC9C0 \uBABB\uD588\uC5B4\uC694",
+                            color = extColors.textTertiary,
+                            fontSize = 14.sp
+                        )
+                    }
+                }
             } else {
                 // Restaurant list
                 restaurants.forEach { restaurant ->
-                    RestaurantCard(restaurant = restaurant)
+                    RestaurantCard(
+                        restaurant = restaurant,
+                        onClick = { onRestaurantClick(restaurant.name) }
+                    )
                     Spacer(modifier = Modifier.height(10.dp))
                 }
             }
@@ -234,7 +256,7 @@ fun ResultScreen(
 }
 
 @Composable
-private fun RestaurantCard(restaurant: Restaurant) {
+private fun RestaurantCard(restaurant: Restaurant, onClick: () -> Unit = {}) {
     val colorScheme = MaterialTheme.colorScheme
     val extColors = MaterialTheme.mukmukColors
     val context = LocalContext.current
@@ -244,6 +266,7 @@ private fun RestaurantCard(restaurant: Restaurant) {
         modifier = Modifier
             .fillMaxWidth()
             .border(1.dp, extColors.cardBorder, RoundedCornerShape(16.dp))
+            .clickable { onClick() }
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
@@ -298,7 +321,9 @@ private fun RestaurantCard(restaurant: Restaurant) {
                 Surface(
                     shape = RoundedCornerShape(8.dp),
                     color = colorScheme.primary.copy(alpha = 0.15f),
-                    modifier = Modifier.clickable {
+                    modifier = Modifier
+                        .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+                        .clickable {
                         if (restaurant.placeUrl.isNotEmpty()) {
                             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(restaurant.placeUrl)))
                         } else {

@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.media.AudioManager
 import android.media.ToneGenerator
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.Animatable
@@ -37,6 +38,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -155,7 +157,7 @@ fun RouletteScreen(
                 ) {
                     viewModel.updateRotation(value)
                 }
-                viewModel.onSpinComplete(target)
+                viewModel.onSpinComplete(target, locationPermissionGranted)
                 if (hapticEnabled) hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                 if (soundEnabled) toneGenerator?.startTone(ToneGenerator.TONE_PROP_ACK, 150)
                 showConfetti = true
@@ -200,8 +202,9 @@ fun RouletteScreen(
         CategoryChips(
             categories = viewModel.categories,
             selectedCategories = viewModel.selectedCategories,
-            onToggle = { viewModel.toggleCategory(it) },
-            onClearAll = { viewModel.clearAllCategories() }
+            onToggle = { if (!viewModel.isSpinning) viewModel.toggleCategory(it) },
+            onClearAll = { if (!viewModel.isSpinning) viewModel.clearAllCategories() },
+            modifier = Modifier.alpha(if (viewModel.isSpinning) 0.5f else 1f)
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -277,6 +280,7 @@ fun RouletteScreen(
             }
         } else {
             // Result screen
+            BackHandler { viewModel.resetToWheel() }
             viewModel.selectedMenu?.let { menu ->
                 ResultScreen(
                     menu = menu,

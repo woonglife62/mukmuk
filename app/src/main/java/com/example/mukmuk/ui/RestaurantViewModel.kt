@@ -12,8 +12,14 @@ import com.example.mukmuk.data.model.FavoriteRestaurant
 import com.example.mukmuk.data.model.Restaurant
 import com.example.mukmuk.data.repository.RemoteRestaurantRepository
 import com.example.mukmuk.data.repository.RestaurantRepository
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -32,6 +38,20 @@ class RestaurantViewModel(
 
     var searchQuery by mutableStateOf("")
         private set
+
+    private val _searchQueryFlow = MutableStateFlow("")
+
+    init {
+        @OptIn(FlowPreview::class)
+        _searchQueryFlow
+            .debounce(300L)
+            .distinctUntilChanged()
+            .onEach { query ->
+                if (query.isNotBlank()) searchFromApi(query)
+                else apiSearchState = RestaurantUiState.Idle
+            }
+            .launchIn(viewModelScope)
+    }
 
     var selectedCategory by mutableStateOf<Category?>(null)
         private set
@@ -63,11 +83,7 @@ class RestaurantViewModel(
 
     fun updateSearchQuery(query: String) {
         searchQuery = query
-        if (query.isNotBlank()) {
-            searchFromApi(query)
-        } else {
-            apiSearchState = RestaurantUiState.Idle
-        }
+        _searchQueryFlow.value = query
     }
 
     fun updateSelectedCategory(category: Category?) {
@@ -81,13 +97,15 @@ class RestaurantViewModel(
         if (showFavoritesOnly) selectedCategory = null
     }
 
-    fun toggleFavorite(restaurantName: String) {
+    fun toggleFavorite(restaurantName: String, onResult: ((added: Boolean) -> Unit)? = null) {
         viewModelScope.launch {
             val isFav = favorites.value.any { it.restaurantName == restaurantName }
             if (isFav) {
                 favoriteDao.deleteByName(restaurantName)
+                onResult?.invoke(false)
             } else {
                 favoriteDao.insert(FavoriteRestaurant(restaurantName = restaurantName))
+                onResult?.invoke(true)
             }
         }
     }
